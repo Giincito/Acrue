@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/components/providers/trpc-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { CmdK } from "@/components/ui/cmdk";
+import { ChatBotFab } from "@/components/ui/chatbot-fab";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +39,6 @@ export const viewport: Viewport = {
   userScalable: false
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -50,6 +52,9 @@ export default function RootLayout({
         <TRPCProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             {children}
+            <Toaster />
+            <CmdK />
+            <ChatBotFab />
           </ThemeProvider>
         </TRPCProvider>
       </body>
