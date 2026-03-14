@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { 
   CheckCircle2, 
   Calendar, 
@@ -61,6 +62,10 @@ export function Sidebar() {
             )
           })}
         </nav>
+      </div>
+      <div className="border-t p-4 flex items-center justify-between">
+        <span className="text-sm text-muted-foreground font-medium">Tema</span>
+        <ThemeToggle />
       </div>
     </aside>
   )
