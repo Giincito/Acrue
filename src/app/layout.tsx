@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/components/providers/trpc-provider";
@@ -17,7 +17,25 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Acrue",
   description: "It all adds up.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Acrue"
+  },
+  formatDetection: {
+    telephone: false
+  }
 };
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false
+};
+
 
 export default function RootLayout({
   children,
