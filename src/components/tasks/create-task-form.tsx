@@ -94,6 +94,7 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
         />
         
         <div className="flex flex-wrap items-center gap-2">
+          {/* Default due_at popover */}
           <FormField
             control={form.control}
             name="due_at"
@@ -135,7 +136,7 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
               <FormItem>
                 <Select onValueChange={(v) => field.onChange(parseInt(v, 10))} defaultValue={field.value.toString()}>
                   <FormControl>
-                    <SelectTrigger className="h-8 text-xs w-[120px]">
+                    <SelectTrigger className="h-8 text-xs w-[110px]">
                       <SelectValue placeholder="Prioridad" />
                     </SelectTrigger>
                   </FormControl>
@@ -143,6 +144,67 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
                     <SelectItem value="1">Alta (1)</SelectItem>
                     <SelectItem value="2">Media (2)</SelectItem>
                     <SelectItem value="3">Baja (3)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Context Tag Selector */}
+          <FormField
+            control={form.control}
+            name="context_tag"
+            render={({ field }) => (
+              <FormItem>
+                <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                  <FormControl>
+                    <SelectTrigger className="h-8 text-xs w-[110px]">
+                      <SelectValue placeholder="Contexto" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">Sin contexto</SelectItem>
+                    <SelectItem value="@hogar">@hogar</SelectItem>
+                    <SelectItem value="@universidad">@universidad</SelectItem>
+                    <SelectItem value="@personal">@personal</SelectItem>
+                    <SelectItem value="@compras">@compras</SelectItem>
+                    <SelectItem value="@trabajo">@trabajo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Basic Recurrence Switch */}
+          <FormField
+            control={form.control}
+            name="is_recurring"
+            render={({ field }) => (
+              <FormItem>
+                <Select 
+                  onValueChange={(val) => {
+                    const isRec = val !== "false"
+                    field.onChange(isRec)
+                    if (isRec) {
+                      form.setValue("recurrence_rule", `FREQ=${val.toUpperCase()};INTERVAL=1`)
+                    } else {
+                      form.setValue("recurrence_rule", null)
+                    }
+                  }} 
+                  defaultValue={field.value ? "daily" : "false"}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-8 text-xs w-[110px]">
+                      <SelectValue placeholder="No repite" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="false">No repite</SelectItem>
+                    <SelectItem value="daily">Diario</SelectItem>
+                    <SelectItem value="weekly">Semanal</SelectItem>
+                    <SelectItem value="monthly">Mensual</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -161,3 +223,4 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
     </Form>
   )
 }
+
