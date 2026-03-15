@@ -19,12 +19,12 @@ export default function TasksPage() {
         <div className="flex justify-between items-center mb-6 pt-2">
           <h1 className="text-3xl font-bold tracking-tight">Tareas</h1>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger render={
               <Button size="icon" className="rounded-full shadow-md bg-[#2282fa] text-white hover:bg-[#2282fa]/90 lg:w-auto lg:px-4 lg:rounded-md h-12 w-12 lg:h-10">
                 <Plus className="w-6 h-6 lg:w-5 lg:h-5 lg:mr-2" />
                 <span className="hidden lg:inline">Nueva Tarea</span>
               </Button>
-            </DialogTrigger>
+            } />
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Nueva Tarea</DialogTitle>

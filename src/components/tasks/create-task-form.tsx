@@ -101,20 +101,18 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "h-8 text-xs font-normal",
-                          !field.value && "text-muted-foreground border-dashed"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {field.value ? format(new Date(field.value), "PPP", { locale: es }) : <span>Fecha</span>}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
+                  <PopoverTrigger render={
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "h-8 text-xs font-normal",
+                        !field.value && "text-muted-foreground border-dashed"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {field.value ? format(new Date(field.value), "PPP", { locale: es }) : <span>Fecha</span>}
+                    </Button>
+                  } />
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
