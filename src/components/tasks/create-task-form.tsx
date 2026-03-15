@@ -17,12 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CreateTaskSchema, TaskStatus } from "@/server/schema/task"
+import { CreateTaskSchema, type CreateTaskInput, TaskStatus } from "@/server/schema/task"
 import { CalendarIcon, Plus } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
-import { es } from "date-fns/locale"
+import { es } from "date-fns/locale/es"
 import { cn } from "@/lib/utils"
 
 interface CreateTaskFormProps {
@@ -34,12 +34,12 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
   const { addTask } = useTaskStore()
   const createMutation = trpc.tasks.create.useMutation()
   
-  const form = useForm<z.infer<typeof CreateTaskSchema>>({
-    resolver: zodResolver(CreateTaskSchema),
+  const form = useForm<CreateTaskInput>({
+    resolver: zodResolver(CreateTaskSchema) as any,
     defaultValues: {
       title: "",
       context_tag: null,
-      status: defaultStatus,
+      status: (defaultStatus as TaskStatus) || "inbox",
       priority: 2,
       due_at: null,
       project_id: null,
@@ -48,7 +48,7 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
     },
   })
 
-  const onSubmit = async (values: z.infer<typeof CreateTaskSchema>) => {
+  const onSubmit = async (values: CreateTaskInput) => {
     try {
       // Optimistically add task locally. Notice we don't have the final ID 
       // but we use a temporary one for immediate render.
@@ -132,7 +132,7 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             name="priority"
             render={({ field }) => (
               <FormItem>
-                <Select onValueChange={(v) => field.onChange(parseInt(v, 10))} defaultValue={field.value.toString()}>
+                <Select onValueChange={(v) => field.onChange(parseInt(v || "2", 10))} defaultValue={field.value.toString()}>
                   <FormControl>
                     <SelectTrigger className="h-8 text-xs w-[110px]">
                       <SelectValue placeholder="Prioridad" />
@@ -155,7 +155,7 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             name="context_tag"
             render={({ field }) => (
               <FormItem>
-                <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "none"}>
                   <FormControl>
                     <SelectTrigger className="h-8 text-xs w-[110px]">
                       <SelectValue placeholder="Contexto" />
@@ -183,7 +183,7 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
               <FormItem>
                 <Select 
                   onValueChange={(val) => {
-                    const isRec = val !== "false"
+                    const isRec = val != null && val !== "false"
                     field.onChange(isRec)
                     if (isRec) {
                       form.setValue("recurrence_rule", `FREQ=${val.toUpperCase()};INTERVAL=1`)

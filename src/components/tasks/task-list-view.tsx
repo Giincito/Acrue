@@ -17,18 +17,18 @@ export function TaskListView({ status, emptyText = "No hay tareas" }: TaskListVi
   
   // Fetch tasks
   const { data, isLoading } = trpc.tasks.list.useQuery(
-    { status: status === "completed" ? undefined : status }, // Custom handling could be added easily
-    {
-      onSuccess: (data) => {
-        // For completed view, we need to filter manually unless we modify the backend query soon
-        const filtered = status === "completed" 
-          ? data.filter(t => t.status === "completed") 
-          : data.filter(t => t.status === status);
-          
-        setTasks(filtered as unknown as Task[]);
-      }
-    }
+    { status: status === "completed" ? undefined : status }
   )
+
+  React.useEffect(() => {
+    if (data) {
+      const filtered = status === "completed" 
+        ? data.filter(t => t.status === "completed") 
+        : data.filter(t => t.status === status);
+        
+      setTasks(filtered as unknown as Task[]);
+    }
+  }, [data, status, setTasks])
 
   const updateMutation = trpc.tasks.update.useMutation()
   const deleteMutation = trpc.tasks.delete.useMutation()

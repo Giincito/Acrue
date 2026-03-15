@@ -17,7 +17,7 @@ export function ReminderListView() {
       await trpcUtils.reminders.list.cancel()
       const previousReminders = trpcUtils.reminders.list.getData()
       
-      trpcUtils.reminders.list.setQueryData(undefined, (old) => {
+      trpcUtils.reminders.list.setData(undefined, (old) => {
         if (!old) return old
         return old.map(r => r.id === updatedReminder.id ? { ...r, ...updatedReminder } : r)
       })
@@ -25,7 +25,7 @@ export function ReminderListView() {
       return { previousReminders }
     },
     onError: (err, newReminder, context) => {
-      trpcUtils.reminders.list.setQueryData(undefined, context?.previousReminders)
+      trpcUtils.reminders.list.setData(undefined, context?.previousReminders)
     },
     onSettled: () => {
       trpcUtils.reminders.list.invalidate()

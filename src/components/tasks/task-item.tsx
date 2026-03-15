@@ -80,7 +80,7 @@ export function TaskItem({ task, onComplete, onDelete, onClick }: TaskItemProps)
 
       {/* Foreground Draggable Card */}
       <motion.div
-        {...bind()}
+        {...(bind() as any)}
         animate={controls}
         layout
         onClick={() => onClick?.(task)}
