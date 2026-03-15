@@ -28,21 +28,48 @@ export function CalendarView() {
   const [view, setView] = React.useState<View>(Views.MONTH)
   const [date, setDate] = React.useState(new Date())
   
-  const { data: tasks, isLoading } = trpc.tasks.list.useQuery()
+  // Fetch tasks and google calendar events to populate calendar
+  const { data: tasks, isLoading: tasksLoading } = trpc.tasks.list.useQuery()
+  const { data: googleEvents, isLoading: googleLoading } = trpc.integrations.googleCalendarEvents.useQuery(undefined, {
+    retry: false // don't retry if it fails (withFallback)
+  })
+
+  const isLoading = tasksLoading || googleLoading
 
   const events = React.useMemo(() => {
-    if (!tasks) return []
-    return tasks
-      .filter((task) => task.due_at) // Only tasks with a due date
-      .map((task) => ({
-        id: task.id,
-        title: task.title,
-        start: new Date(task.due_at!),
-        end: new Date(task.due_at!), // Default 0-duration for tasks
-        allDay: true, // Typical tasks are all-day unless time is specified
-        resource: task,
-      }))
-  }, [tasks])
+    const calendarEvents: any[] = []
+    
+    // Add local tasks
+    if (tasks) {
+      calendarEvents.push(...tasks
+        .filter((task) => task.due_at)
+        .map((task) => ({
+          id: task.id,
+          title: task.title,
+          start: new Date(task.due_at!),
+          end: new Date(task.due_at!),
+          allDay: true,
+          resource: task,
+          type: 'task'
+        })))
+    }
+
+    // Add Google Events
+    if (googleEvents) {
+      calendarEvents.push(...googleEvents.map((ev) => ({
+        id: ev.id,
+        title: ev.title,
+        start: new Date(ev.start),
+        end: new Date(ev.end),
+        allDay: !ev.start.includes("T"), // Simplistic all day check for RFC3339
+        resource: ev,
+        type: 'google'
+      })))
+    }
+
+    return calendarEvents
+  }, [tasks, googleEvents])
+
 
   if (isLoading) {
     return (
