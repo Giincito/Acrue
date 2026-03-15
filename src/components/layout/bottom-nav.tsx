@@ -13,10 +13,10 @@ import {
 } from "lucide-react"
 
 const MOBILE_NAV_ITEMS = [
-  { name: "Tareas", href: "/tasks", icon: CheckCircle2 },
-  { name: "Calend.", href: "/calendar", icon: Calendar },
+  { name: "Tareas", href: "/tareas", icon: CheckCircle2 },
+  { name: "Calend.", href: "/calendario", icon: Calendar },
   { name: "Home", href: "/", icon: Menu }, // Menu or central hub
-  { name: "Finanzas", href: "/finances", icon: Wallet },
+  { name: "Proy.", href: "/proyectos", icon: Wallet },
   { name: "Hábitos", href: "/habits", icon: Activity },
 ]
 

@@ -18,10 +18,11 @@ import {
 } from "lucide-react"
 
 const NAV_ITEMS = [
-  { name: "Tareas", href: "/tasks", icon: CheckCircle2 },
-  { name: "Calendario", href: "/calendar", icon: Calendar },
+  { name: "Tareas", href: "/tareas", icon: CheckCircle2 },
+  { name: "Calendario", href: "/calendario", icon: Calendar },
+  { name: "Recordatorios", href: "/recordatorios", icon: Activity },
+  { name: "Proyectos", href: "/proyectos", icon: FolderKanban },
   { name: "Estudio", href: "/study", icon: BookOpen },
-  { name: "Proyectos", href: "/projects", icon: FolderKanban },
   { name: "Finanzas", href: "/finances", icon: Wallet },
   { name: "Despensa", href: "/pantry", icon: ShoppingCart },
   { name: "Recetas", href: "/recipes", icon: UtensilsCrossed },
