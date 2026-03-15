@@ -211,9 +211,31 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
               </FormItem>
             )}
           />
+          {/* Project Selector */}
+          <FormField
+            control={form.control}
+            name="project_id"
+            render={({ field }) => (
+              <FormItem>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "none"}>
+                  <FormControl>
+                    <SelectTrigger className="h-8 text-xs w-[140px]">
+                      <SelectValue placeholder="Proyecto (Opcional)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">Sin proyecto</SelectItem>
+                    {/* Ideally inject dynamic projects here via tRPC query. Keeping static placeholder structure for UI validation */}
+                    <SelectItem value="11111111-1111-1111-1111-111111111111" disabled>Cargando proyectos...</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        <div className="pt-2 flex justify-end">
+        <div className="pt-4 flex justify-end">
           <Button type="submit" size="sm" disabled={createMutation.isPending} className="bg-[#2282fa] hover:bg-[#2282fa]/90 text-white">
             <Plus className="mr-2 h-4 w-4" />
             {createMutation.isPending ? "Guardando..." : "Crear"}
