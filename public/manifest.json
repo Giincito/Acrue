@@ -1,16 +1,17 @@
 {
-  "name": "Acrue LifeOS",
+  "name": "Acrue",
   "short_name": "Acrue",
   "description": "It all adds up.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#0C0C0B",
+  "theme_color": "#0C0C0B",
   "icons": [
     {
       "src": "/icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
