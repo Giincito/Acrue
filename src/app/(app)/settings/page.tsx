@@ -130,7 +130,8 @@ export default function SettingsPage() {
       .eq('id', userId)
       
     if (error) {
-      toast.error('Error al guardar el Chat ID de Telegram')
+      console.error("Telegram Link DB Error:", error)
+      toast.error('Error al guardar el Chat ID de Telegram: ' + error.message)
     } else {
       toast.success('Chat ID de Telegram guardado exitosamente')
     }
