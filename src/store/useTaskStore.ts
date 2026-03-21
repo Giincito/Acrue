@@ -8,15 +8,21 @@ export type Task = {
   id: string;
   user_id: string;
   title: string;
+  description?: string | null;
   context_tag: string | null;
   status: TaskStatus;
   priority: number;
   due_at: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_all_day: boolean;
   project_id: string | null;
-  is_recurring: boolean;
   recurrence_rule: string | null;
   completed_at: string | null;
   created_at: string;
+  color?: string | null;
+  university_type?: string | null;
+  is_recurring?: boolean | null;
 };
 
 interface TaskState {

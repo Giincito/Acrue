@@ -33,7 +33,7 @@ export function BottomNav() {
             href={item.href}
             className={cn(
               "flex flex-col items-center justify-center w-full h-full gap-1 text-muted-foreground",
-              isActive ? "text-[#2282fa]" : ""
+              isActive ? "text-accent" : ""
             )}
           >
             <item.icon className={cn("h-5 w-5", isActive && "fill-current opacity-20")} />

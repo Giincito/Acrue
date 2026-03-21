@@ -1,0 +1,1 @@
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS color TEXT DEFAULT '#ffedd5';

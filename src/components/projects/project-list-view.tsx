@@ -6,9 +6,12 @@ import { Loader2, Plus, BarChart3, Clock, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { ProjectDetailsDrawer } from "./project-details-drawer"
 
-export function ProjectListView() {
+export function ProjectListView({ onCreateClick }: { onCreateClick?: () => void }) {
   const { data: projects, isLoading } = trpc.projects.list.useQuery()
+  const [selectedProject, setSelectedProject] = React.useState<any | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false)
 
   if (isLoading) {
     return (
@@ -23,7 +26,7 @@ export function ProjectListView() {
       <div className="text-center py-12 px-4 border border-dashed rounded-lg bg-muted/20">
         <BarChart3 className="w-8 h-8 mx-auto text-muted-foreground opacity-50 mb-3" />
         <p className="text-sm text-muted-foreground">Todavía no tenés ningún proyecto en curso.</p>
-        <Button variant="outline" size="sm" className="mt-4">
+        <Button variant="outline" size="sm" className="mt-4" onClick={onCreateClick}>
           <Plus className="w-4 h-4 mr-2" /> Crear Proyecto
         </Button>
       </div>
@@ -33,28 +36,34 @@ export function ProjectListView() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {projects.map((project) => {
-        const totalTasks = project.tasks?.length || 0
-        const completedTasks = project.tasks?.filter((t: any) => t.status === "completed").length || 0
+        const activeProjectTasks = project.tasks?.filter((t: any) => t.status !== "trash" && t.deleted_at === null) || []
+        const totalTasks = activeProjectTasks.length
+        const completedTasks = activeProjectTasks.filter((t: any) => t.status === "completed").length || 0
         const progressPercentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100)
 
         return (
           <div 
             key={project.id} 
-            className="flex flex-col p-5 bg-background border rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+            onClick={() => {
+              setSelectedProject(project)
+              setIsDrawerOpen(true)
+            }}
+            className="flex flex-col p-5 bg-background border rounded-xl shadow-sm hover:shadow-sm transition-shadow cursor-pointer group"
           >
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
                 {project.color && (
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} />
                 )}
-                <h3 className="font-semibold text-lg tracking-tight group-hover:text-[#2282fa] transition-colors">{project.name}</h3>
+                <h3 className="font-medium text-lg tracking-tight group-hover:text-accent transition-colors">{project.name}</h3>
               </div>
               <span className={cn(
                 "px-2 py-0.5 text-xs font-medium rounded-full",
                 project.status === 'completed' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                project.status === 'archived' ? "bg-muted text-muted-foreground" : "bg-[#2282fa]/10 text-[#2282fa]"
+                project.status === 'planned' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                project.status === 'archived' ? "bg-muted text-muted-foreground" : "bg-accent/10 text-accent"
               )}>
-                {project.status === 'active' ? 'Activo' : project.status === 'completed' ? 'Completo' : 'Archivado'}
+                {project.status === 'active' ? 'En Progreso' : project.status === 'completed' ? 'Completado' : project.status === 'planned' ? 'Planificado' : 'Archivado'}
               </span>
             </div>
             
@@ -83,6 +92,12 @@ export function ProjectListView() {
           </div>
         )
       })}
+      
+      <ProjectDetailsDrawer 
+        project={selectedProject} 
+        open={isDrawerOpen} 
+        onOpenChange={setIsDrawerOpen} 
+      />
     </div>
   )
 }

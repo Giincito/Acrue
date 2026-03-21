@@ -10,7 +10,7 @@ export const projectRouter = router({
         .from('projects')
         .select(`
           *,
-          tasks(id, status)
+          tasks(id, status, deleted_at)
         `)
         .order('created_at', { ascending: false });
 
@@ -34,6 +34,7 @@ export const projectRouter = router({
           description: input.description,
           status: input.status,
           color: input.color,
+          icon: input.icon,
           due_at: input.due_at,
         })
         .select()

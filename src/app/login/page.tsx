@@ -24,7 +24,7 @@ export default function LoginPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <div className="flex flex-col space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Acceso Acrue</h1>
+          <h1 className="text-[24px] font-light tracking-[-0.03em]">Acceso Acrue</h1>
           <p className="text-sm text-muted-foreground">
             Inicia sesión con Google para continuar
           </p>
@@ -33,7 +33,7 @@ export default function LoginPage() {
           variant="default"
           onClick={handleLogin}
           disabled={isLoading}
-          className="w-full bg-[#2282fa] text-white hover:bg-[#2282fa]/90"
+          className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
         >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Continuar con Google

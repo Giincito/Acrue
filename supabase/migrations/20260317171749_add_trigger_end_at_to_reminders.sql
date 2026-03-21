@@ -1,0 +1,1 @@
+ALTER TABLE public.reminders ADD COLUMN trigger_end_at TIMESTAMP WITH TIME ZONE;

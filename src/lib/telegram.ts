@@ -8,16 +8,15 @@ if (!botToken) {
   console.warn("TELEGRAM_BOT_TOKEN is missing. Bot won't start.")
 }
 
-export const bot = botToken ? new Telegraf(botToken) : null
+// Next.js HMR safe global singleton pattern
+const globalForTelegram = globalThis as unknown as { telegramBot: Telegraf | null }
 
-if (bot && webhookDomain) {
-  // Setup the webhook path. 
-  bot.telegram.setWebhook(`${webhookDomain}/api/telegram`)
-}
+if (!globalForTelegram.telegramBot && botToken) {
+  const newBot = new Telegraf(botToken)
+  globalForTelegram.telegramBot = newBot
 
-// Bot Commands Setup
-if (bot) {
-  bot.start(async (ctx) => {
+  // Bot Commands Setup (Only run once upon instantiation)
+  newBot.start(async (ctx) => {
     // Expected link syntax: /start link_user_someuuid
     const text = ctx.message.text
     const parts = text.split(" ")
@@ -49,7 +48,24 @@ if (bot) {
     }
   })
 
-  bot.help((ctx) => {
+  newBot.help((ctx) => {
     ctx.reply('Para operar conmigo debes iniciar la vinculación desde la web app de Acrue.')
   })
+
+  // Start logic based on environment
+  if (process.env.NODE_ENV === 'development') {
+    newBot.telegram.deleteWebhook().then(() => {
+      newBot.launch()
+      console.log('🤖 Telegram bot started in long-polling mode (development).')
+    }).catch((err) => console.error("Failed to start Telegram polling:", err));
+    
+    // Enable graceful stop for hot-reloads/shutdowns
+    process.once('SIGINT', () => newBot.stop('SIGINT'))
+    process.once('SIGTERM', () => newBot.stop('SIGTERM'))
+  } else if (webhookDomain) {
+    // Setup the webhook path for production
+    newBot.telegram.setWebhook(`${webhookDomain}/api/telegram`).catch((err) => console.error("Failed to set webhook:", err))
+  }
 }
+
+export const bot = globalForTelegram.telegramBot || null
