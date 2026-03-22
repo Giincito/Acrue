@@ -126,6 +126,8 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
               <FormItem className="flex-none">
                 <FormControl>
                   <Popover>
+                    {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                    {/* @ts-expect-error - PopoverTrigger asChild typing conflict with base-ui */}
                     <PopoverTrigger asChild>
                       <button type="button" className="flex items-center justify-center w-10 h-10 rounded-md border cursor-pointer hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors relative" style={{ backgroundColor: field.value ? `${field.value}15` : 'transparent' }}>
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: field.value || PROJECT_PALETTE[0] }} />
@@ -161,7 +163,7 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <Popover>
-                {/* @ts-expect-error - Radix primitive asChild typing mismatch in this specific setup */}
+                {/* @ts-expect-error - PopoverTrigger asChild typing conflict with base-ui */}
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}

@@ -24,7 +24,7 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
   switch (intent) {
     case 'gasto':
     case 'ingreso': {
-      const p = payload as GastoPayload
+      const p = payload as unknown as GastoPayload
       return {
         user_id: userId,
         description: p.descripcion,
@@ -36,7 +36,7 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
       }
     }
     case 'tarea': {
-      const p = payload as TareaPayload
+      const p = payload as unknown as TareaPayload
       return {
         user_id: userId,
         title: p.titulo,
@@ -48,7 +48,7 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
       }
     }
     case 'evento': {
-      const p = payload as EventoPayload
+      const p = payload as unknown as EventoPayload
       return {
         user_id: userId,
         title: p.titulo,
@@ -60,7 +60,7 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
       }
     }
     case 'habito': {
-      const p = payload as HabitoPayload
+      const p = payload as unknown as HabitoPayload
       return {
         user_id: userId,
         name: p.nombre,
@@ -69,7 +69,7 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
       }
     }
     case 'proyecto': {
-      const p = payload as ProyectoPayload
+      const p = payload as unknown as ProyectoPayload
       return {
         user_id: userId,
         name: p.nombre,
@@ -79,7 +79,7 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
       }
     }
     case 'wishlist': {
-      const p = payload as WishlistPayload
+      const p = payload as unknown as WishlistPayload
       return {
         user_id: userId,
         name: p.nombre,

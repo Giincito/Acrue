@@ -21,13 +21,13 @@ export default function ProyectosPage() {
         <div className="flex justify-between items-center mb-6 pt-8">
           <h1 className="text-[24px] font-light tracking-[-0.03em]">Proyectos</h1>
           <Dialog open={isProjectCreateOpen} onOpenChange={setIsProjectCreateOpen}>
-            {/* @ts-expect-error - Radix primitive asChild typing mismatch in this specific setup */}
-            <DialogTrigger render={
+            {/* @ts-expect-error - DialogTrigger asChild typing conflict with base-ui */}
+            <DialogTrigger asChild>
               <Button size="icon" className="rounded-full shadow-sm bg-accent text-accent-foreground hover:bg-accent/90 lg:w-auto lg:px-4 lg:rounded-md h-12 w-12 lg:h-10">
                 <Plus className="w-6 h-6 lg:w-5 lg:h-5 lg:mr-2" />
                 <span className="hidden lg:inline">Nuevo Proyecto</span>
               </Button>
-            } />
+            </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Nuevo Proyecto</DialogTitle>
