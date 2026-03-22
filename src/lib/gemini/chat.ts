@@ -6,10 +6,18 @@ const CHAT_SYSTEM_PROMPT = `Sos Acrue, un asistente personal inteligente. Tenés
 
 REGLAS:
 - Usá los datos del contexto provisto para responder preguntas específicas
-- Si el usuario pide crear algo (tarea, evento, etc.), respondé con un JSON de acción: {"action": "create_task", "data": {...}}
-- Si el usuario hace una pregunta, respondé directamente con texto natural
+- DEBES responder SIEMPRE con un objeto JSON válido con esta estructura estricta:
+  {
+    "message": "Texto en lenguaje natural para el usuario. Esta será la única respuesta visible.",
+    "action": { // (Opcional, solo si el usuario pide crear/modificar algo)
+      "type": "create_task", 
+      "payload": { "title": "...", "priority": 1, "due_at": "YYYY-MM-DDTHH:MM:SSZ" }
+    }
+  }
+- Si el usuario hace una pregunta normal que no requiere acciones, respondé usando la misma estructura JSON pero omitiendo el campo "action".
+- NO devuelvas texto fuera del JSON. Todo el output debe ser parseable.
 - No inventés datos que no estén en el contexto
-- Sé conciso — máximo 3 párrafos cortos
+- Sé conciso — máximo 3 párrafos cortos en el campo message
 - Usá emojis con moderación para hacer las respuestas más amigables`
 
 const MAX_CONTEXT_ITEMS = 20
@@ -123,17 +131,23 @@ Acrue:`
     }
   }
 
-  // Try to detect if the response contains an action JSON
+  // Parse the JSON response
+  let replyMessage = text
   let action: Record<string, unknown> | undefined
-  const actionMatch = text.match(/\{"action":\s*"[^"]+"/)  
-  if (actionMatch) {
-    try {
-      const jsonText = text.match(/\{[\s\S]*\}/)?.[0]
-      if (jsonText) action = JSON.parse(jsonText)
-    } catch {
-      // Not a valid JSON action, treat as plain text
+
+  try {
+    const jsonStr = text.replace(/```json\n?/g, '').replace(/```/g, '').trim()
+    const parsed = JSON.parse(jsonStr)
+    if (parsed.message) {
+      replyMessage = parsed.message
     }
+    if (parsed.action) {
+      action = parsed.action
+    }
+  } catch (e) {
+    // Si Gemini ignoró la regla y devolvió texto plano
+    replyMessage = text
   }
 
-  return { reply: text, action }
+  return { reply: replyMessage, action }
 }

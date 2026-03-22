@@ -29,7 +29,23 @@ export async function POST(req: Request) {
       modules ?? [] // empty = all modules
     )
 
-    return NextResponse.json({ reply, action })
+    if (action && action.type === 'create_task' && action.payload) {
+      const payload = action.payload as any
+      const { error: insertError } = await supabase.from('tasks').insert({
+        user_id: user.id,
+        title: payload.title,
+        description: payload.description || null,
+        priority: payload.priority || 2,
+        due_at: payload.due_at || null,
+        status: 'inbox'
+      })
+      if (insertError) {
+        console.error('[api/ai/chat] Error procesando accion create_task:', insertError)
+      }
+    }
+
+    // Devolver solo reply para que el JSON nunca sea visible
+    return NextResponse.json({ reply })
   } catch (err: any) {
     console.error('[api/ai/chat] Unexpected error:', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
