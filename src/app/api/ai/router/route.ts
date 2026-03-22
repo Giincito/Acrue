@@ -49,7 +49,7 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
         description: payload.description ?? null,
         starts_at: payload.starts_at || payload.date,
         ends_at: payload.ends_at ?? null,
-        location: payload.location || payload.ubicacion ?? null,
+        location: (payload.location || payload.ubicacion) ?? null,
         source: 'ai',
       }
     }
