@@ -103,19 +103,22 @@ export const taskRouter = router({
       // Background sync with Google Calendar
       if (data.due_at || data.start_time) {
         try {
-          const { pushGoogleCalendarEvent } = await import('@/lib/google-calendar');
-          const payload = {
-            title: data.title,
-            description: data.description || '',
-            start_at: data.start_time || data.due_at,
-            end_at: data.end_time || data.start_time || data.due_at,
-            is_all_day: data.is_all_day || false,
-            color: data.color
-          };
-          const gcalEventId = await pushGoogleCalendarEvent(ctx.user.id, payload);
-          if (gcalEventId) {
-            await ctx.supabase.from('tasks').update({ gcal_event_id: gcalEventId }).eq('id', data.id);
+          const gcalMod = await import('@/lib/google-calendar').catch(() => null);
+          if (gcalMod?.pushGoogleCalendarEvent) {
+             const payload = {
+              title: data.title,
+              description: data.description || '',
+              start_at: data.start_time || data.due_at,
+              end_at: data.end_time || data.start_time || data.due_at,
+              is_all_day: data.is_all_day || false,
+              color: data.color
+            };
+            const gcalEventId = await gcalMod.pushGoogleCalendarEvent(ctx.user.id, payload);
+            if (gcalEventId) {
+              await ctx.supabase.from('tasks').update({ gcal_event_id: gcalEventId }).eq('id', data.id);
+            }
           }
+
         } catch (err) {
           console.error('Failed to push to GCal:', err);
         }
