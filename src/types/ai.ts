@@ -56,11 +56,10 @@ export interface GastoPayload {
 }
 
 export interface TareaPayload {
-  titulo: string
-  descripcion?: string
-  prioridad?: 'urgente' | 'normal' | 'bajo'
+  title: string
   due_at?: string
-  etiqueta?: string
+  priority?: number
+  context_tag?: string
 }
 
 export interface EventoPayload {

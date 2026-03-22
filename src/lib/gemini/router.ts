@@ -24,7 +24,7 @@ REGLAS CRÍTICAS:
 }
 
 2. Para "gasto": payload debe incluir { descripcion, monto (número), categoria?, fecha?, metodo_pago? }
-3. Para "tarea": payload debe incluir { titulo, descripcion?, prioridad? ("urgente"|"normal"|"bajo"), due_at? (ISO date), etiqueta? }
+3. Para "tarea": payload debe incluir { title: string, due_at?: string, priority?: number, context_tag?: string }
 4. Para "evento": payload debe incluir { titulo, starts_at (ISO datetime), ends_at?, ubicacion? }
 5. Para "habito": payload debe incluir { nombre, frecuencia? }
 6. Para "nota": payload debe incluir { contenido, titulo? }

@@ -76,7 +76,6 @@ export const taskRouter = router({
         .insert({
           user_id: ctx.user.id,
           title: input.title,
-          description: input.description,
           context_tag: input.context_tag,
           status: input.status,
           priority: input.priority,

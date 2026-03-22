@@ -39,9 +39,8 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
       const p = payload as unknown as TareaPayload
       return {
         user_id: userId,
-        title: p.titulo,
-        description: p.descripcion ?? null,
-        priority: p.prioridad ?? 'normal',
+        title: p.title,
+        priority: p.priority ?? 2,
         due_at: p.due_at ?? null,
         status: 'inbox',
         source: 'ai',
