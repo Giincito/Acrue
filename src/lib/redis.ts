@@ -1,10 +1,10 @@
 import { Redis } from '@upstash/redis'
 
-const redisUrl = process.env.UPSTASH_REDIS_URL
-const redisToken = process.env.UPSTASH_REDIS_TOKEN
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
 if (!redisUrl || !redisToken) {
-  console.warn('⚠️ UPSTASH_REDIS_URL or UPSTASH_REDIS_TOKEN missing. Redis features will be disabled.')
+  console.warn('⚠️ UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN missing. Redis features will be disabled.')
 }
 
 /**
