@@ -39,7 +39,8 @@ export async function buildChatContext(
       parts.push(`📋 TAREAS PENDIENTES (${tasks.length}):`)
       tasks.forEach((t) => {
         const due = t.due_at ? ` — vence ${new Date(t.due_at).toLocaleDateString('es-AR')}` : ''
-        parts.push(`  • [${t.priority?.toUpperCase()}] ${t.title}${due}`)
+        const priorityLabel = t.priority === 1 ? 'URGENTE' : t.priority === 2 ? 'NORMAL' : 'BAJO'
+        parts.push(`  • [${priorityLabel}] ${t.title}${due}`)
       })
     }
   }
