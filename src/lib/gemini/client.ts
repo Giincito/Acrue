@@ -3,6 +3,8 @@ import { withFallback } from '@/lib/integrations/resilience'
 
 const apiKey = process.env.GEMINI_API_KEY
 
+console.log('Gemini key loaded:', !!process.env.GEMINI_API_KEY)
+
 if (!apiKey) {
   console.warn('⚠️ GEMINI_API_KEY is missing. Gemini features will be disabled.')
 }
@@ -17,7 +19,7 @@ if (!globalForGemini.geminiClient && apiKey) {
 export const geminiClient = globalForGemini.geminiClient || null
 
 /** Default model — Gemini 2.5 Flash-Lite */
-export const GEMINI_MODEL = 'gemini-2.0-flash'
+export const GEMINI_MODEL = 'gemini-2.5-flash'
 
 export interface GeminiOptions {
   model?: string
@@ -47,18 +49,23 @@ export async function callGemini(
 
   const { data, fromCache, error } = await withFallback(
     async () => {
-      if (!geminiClient) throw new Error('Gemini client not initialized')
+      try {
+        if (!geminiClient) throw new Error('Gemini client not initialized')
 
-      const generativeModel = geminiClient.getGenerativeModel({
-        model,
-        generationConfig: { temperature, maxOutputTokens },
-        ...(systemInstruction ? { systemInstruction } : {}),
-      })
+        const generativeModel = geminiClient.getGenerativeModel({
+          model,
+          generationConfig: { temperature, maxOutputTokens },
+          ...(systemInstruction ? { systemInstruction } : {}),
+        })
 
-      const result = await generativeModel.generateContent(prompt)
-      const text = result.response.text()
-      if (!text) throw new Error('Empty response from Gemini')
-      return text
+        const result = await generativeModel.generateContent(prompt)
+        const text = result.response.text()
+        if (!text) throw new Error('Empty response from Gemini')
+        return text
+      } catch (err: any) {
+        console.error('Gemini error:', err)
+        throw err
+      }
     },
     null as string | null,
     undefined // no Redis cache for raw Gemini calls (router handles its own caching)
