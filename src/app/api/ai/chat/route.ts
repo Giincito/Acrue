@@ -29,23 +29,48 @@ export async function POST(req: Request) {
       modules ?? [] // empty = all modules
     )
 
-    if (action && action.type === 'create_task' && action.payload) {
-      const payload = action.payload as any
-      const { error: insertError } = await supabase.from('tasks').insert({
-        user_id: user.id,
-        title: payload.title,
-        description: payload.description || null,
-        priority: payload.priority || 2,
-        due_at: payload.due_at || null,
-        status: 'inbox'
-      })
-      if (insertError) {
-        console.error('[api/ai/chat] Error procesando accion create_task:', insertError)
+    let actionId: string | undefined
+
+    if (action) {
+      try {
+        switch (action.type) {
+          case 'create_task': {
+            const payload = action.payload as any
+            const { data, error: insertError } = await supabase.from('tasks').insert({
+              user_id: user.id,
+              title: payload.title || payload.description || 'Nueva tarea',
+              due_at: payload.due_at || payload.due_date || null,
+              priority: payload.priority === 'ALTA' ? 1 : payload.priority === 'MEDIA' ? 2 : typeof payload.priority === 'number' ? payload.priority : 3,
+              status: 'inbox',
+              source: 'chatbot'
+            }).select('id').single()
+            
+            if (insertError) console.error('[api/ai/chat] Error procesando create_task:', insertError)
+            if (data) actionId = data.id
+            break
+          }
+          case 'create_reminder': {
+            const payload = action.payload as any
+            const { data, error: insertError } = await supabase.from('reminders').insert({
+              user_id: user.id,
+              title: payload.title || payload.description || 'Nuevo recordatorio',
+              trigger_at: payload.trigger_at || payload.due_date || payload.time || new Date().toISOString(),
+              is_completed: false,
+              source: 'chatbot'
+            }).select('id').single()
+            
+            if (insertError) console.error('[api/ai/chat] Error procesando create_reminder:', insertError)
+            if (data) actionId = data.id
+            break
+          }
+        }
+      } catch (e) {
+        console.error('[api/ai/chat] Excepcion ejecutando accion:', e)
       }
     }
 
-    // Devolver solo reply para que el JSON nunca sea visible
-    return NextResponse.json({ reply })
+    // Devolver solo reply para que el JSON nunca sea visible, junto con actionId
+    return NextResponse.json({ reply, actionId })
   } catch (err: any) {
     console.error('[api/ai/chat] Unexpected error:', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
