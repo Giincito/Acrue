@@ -155,9 +155,9 @@ export function CalendarView() {
         .map((task) => ({
           id: task.id,
           title: task.title,
-          start: new Date(task.due_at!),
-          end: new Date(new Date(task.due_at!).getTime() + 24 * 60 * 60 * 1000 - 1),
-          allDay: true,
+          start: new Date(task.start_time || task.due_at!),
+          end: new Date(task.end_time || task.start_time || task.due_at!),
+          allDay: !task.start_time,
           resource: task,
           type: 'task'
         })))

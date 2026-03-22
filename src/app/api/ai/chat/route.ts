@@ -36,10 +36,14 @@ export async function POST(req: Request) {
         switch (action.type) {
           case 'create_task': {
             const payload = action.payload as any
+            const dueRaw = payload.due_at || payload.due_date;
+            const parsedDueAt = dueRaw 
+              ? (dueRaw.length === 10 ? dueRaw + 'T12:00:00-03:00' : dueRaw.includes('T00:00:00') ? dueRaw.split('T')[0] + 'T12:00:00-03:00' : dueRaw) 
+              : null;
             const { data, error: insertError } = await supabase.from('tasks').insert({
               user_id: user.id,
               title: payload.title || payload.description || 'Nueva tarea',
-              due_at: payload.due_at || payload.due_date || null,
+              due_at: parsedDueAt,
               priority: payload.priority === 'ALTA' ? 1 : payload.priority === 'MEDIA' ? 2 : typeof payload.priority === 'number' ? payload.priority : 3,
               status: 'inbox',
               source: 'chatbot'
@@ -51,10 +55,14 @@ export async function POST(req: Request) {
           }
           case 'create_reminder': {
             const payload = action.payload as any
+            const triggerRaw = payload.trigger_at || payload.due_date || payload.time;
+            const parsedTriggerAt = triggerRaw
+              ? (triggerRaw.length === 10 ? triggerRaw + 'T12:00:00-03:00' : triggerRaw.includes('T00:00:00') ? triggerRaw.split('T')[0] + 'T12:00:00-03:00' : triggerRaw)
+              : new Date().toISOString();
             const { data, error: insertError } = await supabase.from('reminders').insert({
               user_id: user.id,
               title: payload.title || payload.description || 'Nuevo recordatorio',
-              trigger_at: payload.trigger_at || payload.due_date || payload.time || new Date().toISOString(),
+              trigger_at: parsedTriggerAt,
               is_completed: false,
               source: 'chatbot'
             }).select('id').single()
