@@ -19,7 +19,7 @@ if (!globalForGemini.geminiClient && apiKey) {
 export const geminiClient = globalForGemini.geminiClient || null
 
 /** Default model — Gemini 3.1 Flash-Lite */
-export const GEMINI_MODEL = 'gemini-3.1-flash-lite'
+export const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview'
 
 export interface GeminiOptions {
   model?: string
