@@ -219,7 +219,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <Button variant="outline" size="sm" disabled={!userId} onClick={() => {
-                  if (userId) window.open(`https://t.me/acrue_personal_bot?start=link_user_${userId}`, '_blank')
+                  if (userId) window.open(`https://t.me/AcrueBot?start=link_user_${userId}`, '_blank')
                 }}>
                   {userId ? "Vincular Cuenta (Web)" : "Cargando..."}
                 </Button>
