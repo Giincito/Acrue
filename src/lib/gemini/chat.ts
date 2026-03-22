@@ -31,7 +31,14 @@ Cuando el usuario hace una PREGUNTA sobre el pasado (verbos como "gasté", "com�
 Cuando el usuario da una INSTRUCCIÓN para el futuro (verbos como "agregá", "poné", "recordame"):
 - "el lunes", "el martes", etc. → el próximo día mencionado que aún no llegó
 - "mañana" → fecha de hoy + 1 día
-- "pasado mañana" → fecha de hoy + 2 días`
+- "pasado mañana" → fecha de hoy + 2 días
+
+SEMANAS RELATIVAS (basándose en hoy: {{FECHA_HOY}}):
+- "esta semana" → lunes al domingo de la semana actual
+- "la semana que viene" / "la próxima semana" / "la semana próxima" → lunes al domingo de la semana siguiente (hoy + 7 días aprox.)
+- "la próxima semana no, la otra" / "la semana que viene no, la otra" / "en dos semanas" → lunes al domingo de la semana en 2 semanas (hoy + 14 días aprox.)
+- "la semana pasada" / "la semana anterior" → lunes al domingo de la semana anterior
+- "hace dos semanas" → semana de hoy - 14 días`
 
 const MAX_CONTEXT_ITEMS = 20
 

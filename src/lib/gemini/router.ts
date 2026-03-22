@@ -22,7 +22,14 @@ EJEMPLOS:
 IMPORTANTE:
 - Respondé SOLO con el JSON, sin texto adicional, sin markdown, sin backticks
 - El campo confidence SIEMPRE debe ser un número entre 0 y 1, nunca 0 exacto salvo que sea imposible detectar la intención
-- Para fechas relativas como "mañana", "pasado mañana", "el viernes", calculá la fecha real basándote en hoy: {{FECHA_HOY}}`
+- Para fechas relativas como "mañana", "pasado mañana", "el viernes", calculá la fecha real basándote en hoy: {{FECHA_HOY}}.
+
+SEMANAS RELATIVAS (basándose en hoy: {{FECHA_HOY}}):
+- "esta semana" → lunes al domingo de la semana actual
+- "la semana que viene" / "la próxima semana" / "la semana próxima" → lunes al domingo de la semana siguiente (hoy + 7 días aprox.)
+- "la próxima semana no, la otra" / "la semana que viene no, la otra" / "en dos semanas" → lunes al domingo de la semana en 2 semanas (hoy + 14 días aprox.)
+- "la semana pasada" / "la semana anterior" → lunes al domingo de la semana anterior
+- "hace dos semanas" → semana de hoy - 14 días`
 
 /**
  * Detects the intent of a natural language input using Gemini.
