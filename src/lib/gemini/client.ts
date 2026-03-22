@@ -54,11 +54,12 @@ export async function callGemini(
 
         const generativeModel = geminiClient.getGenerativeModel({
           model,
+          systemInstruction,
           generationConfig: { temperature, maxOutputTokens },
-          ...(systemInstruction ? { systemInstruction } : {}),
         })
 
         const result = await generativeModel.generateContent(prompt)
+        console.log('[callGemini] raw response:', result.response.text())
         const text = result.response.text()
         if (!text) throw new Error('Empty response from Gemini')
         return text
