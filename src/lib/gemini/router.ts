@@ -43,19 +43,27 @@ export async function detectIntent(text: string): Promise<IntentResult | null> {
     return null
   }
 
-  try {
-    // Strip any accidental markdown fences
-    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const parsed = JSON.parse(cleaned)
+  // Strip any accidental markdown fences
+  let cleaned = raw.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim()
+  console.log('Gemini raw response:', raw)
 
+  let parsed
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch (parseErr) {
+    console.error('Router parse error. Raw response:', raw)
     return {
-      intent: (parsed.intent ?? 'desconocido') as IntentType,
-      confidence: Number(parsed.confidence ?? 0),
-      payload: parsed.payload ?? {},
+      intent: 'desconocido',
+      confidence: 0,
+      payload: {},
       rawText: text,
     }
-  } catch (parseErr) {
-    console.error('[detectIntent] JSON parse error:', parseErr, 'Raw:', raw)
-    return null
+  }
+
+  return {
+    intent: (parsed.intent ?? 'desconocido') as IntentType,
+    confidence: Number(parsed.confidence ?? 0),
+    payload: parsed.payload ?? {},
+    rawText: text,
   }
 }
