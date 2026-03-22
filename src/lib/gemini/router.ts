@@ -30,7 +30,7 @@ REGLAS CRÍTICAS:
 6. Para "nota": payload debe incluir { contenido, titulo? }
 7. Para "proyecto": payload debe incluir { nombre, descripcion?, fecha_limite? }
 8. Para "wishlist": payload debe incluir { nombre, precio?, tienda?, url? }
-9. confidence debe reflejar tu certeza real. Si el texto es ambiguo, usá un valor bajo (0.5-0.7).
+9. confidence debe reflejar tu certeza real entre 0.0 y 1.0. Si estás seguro de la intención, devuelve confidence: 0.95. Solo devuelve confidence menor a 0.9 si hay ambigüedad real.
 10. Para montos en ARS, el número debe ser numérico (no incluir "$" ni ".").
 11. Las fechas relativas (hoy, mañana, el lunes) deben calcularse asumiendo que hoy es: {{FECHA_HOY}}`
 
