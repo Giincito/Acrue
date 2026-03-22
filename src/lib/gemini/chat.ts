@@ -18,7 +18,20 @@ REGLAS:
 - NO devuelvas texto fuera del JSON. Todo el output debe ser parseable.
 - No inventés datos que no estén en el contexto
 - Sé conciso — máximo 3 párrafos cortos en el campo message
-- Usá emojis con moderación para hacer las respuestas más amigables`
+- Usá emojis con moderación para hacer las respuestas más amigables
+
+INTERPRETACIÓN DE FECHAS EN CONSULTAS:
+Hoy es {{FECHA_HOY}} ({{DIA_SEMANA}}).
+
+Cuando el usuario hace una PREGUNTA sobre el pasado (verbos como "gasté", "comí", "hice", "tuve"):
+- "el lunes", "el martes", etc. → el día más reciente que ya pasó
+- "esta semana" → desde el lunes de esta semana hasta hoy
+- "la semana pasada" → lunes al domingo de la semana anterior
+
+Cuando el usuario da una INSTRUCCIÓN para el futuro (verbos como "agregá", "poné", "recordame"):
+- "el lunes", "el martes", etc. → el próximo día mencionado que aún no llegó
+- "mañana" → fecha de hoy + 1 día
+- "pasado mañana" → fecha de hoy + 2 días`
 
 const MAX_CONTEXT_ITEMS = 20
 
@@ -119,8 +132,12 @@ ${historyText}
 Usuario: ${message}
 Acrue:`
 
+  const systemInstruction = CHAT_SYSTEM_PROMPT
+    .replace('{{FECHA_HOY}}', new Date().toISOString().split('T')[0])
+    .replace('{{DIA_SEMANA}}', new Date().toLocaleDateString('es-AR', { weekday: 'long' }))
+
   const { text, error } = await callGemini(prompt, {
-    systemInstruction: CHAT_SYSTEM_PROMPT,
+    systemInstruction,
     temperature: 0.7,
     maxOutputTokens: 512,
   })
