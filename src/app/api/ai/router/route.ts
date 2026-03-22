@@ -33,10 +33,20 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
       }
     }
     case 'create_task': {
+      const priorityMap: Record<string, number> = {
+        high: 1, alta: 1, urgente: 1, '1': 1,
+        medium: 2, media: 2, normal: 2, '2': 2,
+        low: 3, baja: 3, bajo: 3, '3': 3,
+      }
+
+      const priority = typeof payload.priority === 'number'
+        ? payload.priority
+        : priorityMap[String(payload.priority).toLowerCase()] ?? 2
+
       return {
         user_id: userId,
         title: payload.title || payload.titulo,
-        priority: payload.priority ?? 2,
+        priority: priority,
         due_at: (payload.due_date || payload.due_at) ?? null,
         status: 'inbox',
         source: 'ai',
@@ -49,7 +59,7 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
         description: payload.description ?? null,
         starts_at: payload.starts_at || payload.date,
         ends_at: payload.ends_at ?? null,
-        location: (payload.location || payload.ubicacion) ?? null, // fixed parens
+        location: (payload.location || payload.ubicacion) ?? null,
         source: 'ai',
       }
     }

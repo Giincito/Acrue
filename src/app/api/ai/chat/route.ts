@@ -40,11 +40,21 @@ export async function POST(req: Request) {
             const parsedDueAt = dueRaw 
               ? (dueRaw.length === 10 ? dueRaw + 'T12:00:00-03:00' : dueRaw.includes('T00:00:00') ? dueRaw.split('T')[0] + 'T12:00:00-03:00' : dueRaw) 
               : null;
+            
+            const priorityMap: Record<string, number> = {
+              high: 1, alta: 1, urgente: 1, '1': 1,
+              medium: 2, media: 2, normal: 2, '2': 2,
+              low: 3, baja: 3, bajo: 3, '3': 3,
+            }
+            const priority = typeof payload.priority === 'number'
+              ? payload.priority
+              : priorityMap[String(payload.priority).toLowerCase()] ?? 2
+
             const { data, error: insertError } = await supabase.from('tasks').insert({
               user_id: user.id,
               title: payload.title || payload.description || 'Nueva tarea',
               due_at: parsedDueAt,
-              priority: payload.priority === 'ALTA' ? 1 : payload.priority === 'MEDIA' ? 2 : typeof payload.priority === 'number' ? payload.priority : 3,
+              priority: priority,
               status: 'inbox',
               source: 'chatbot'
             }).select('id').single()
