@@ -1,14 +1,12 @@
 /** All intent types the AI router can detect */
 export type IntentType =
-  | 'gasto'
-  | 'ingreso'
-  | 'tarea'
-  | 'evento'
-  | 'habito'
-  | 'receta'
-  | 'nota'
-  | 'proyecto'
-  | 'wishlist'
+  | 'create_expense'
+  | 'create_task'
+  | 'create_event'
+  | 'create_habit'
+  | 'create_note'
+  | 'create_project'
+  | 'add_wishlist_item'
   | 'desconocido'
 
 /** Structured response from Gemini intent detection */
@@ -48,11 +46,11 @@ export interface UndoPayload {
 // ----------- Intent-specific payloads -----------
 
 export interface GastoPayload {
-  descripcion: string
-  monto: number
-  categoria?: string
-  fecha?: string
-  metodo_pago?: string
+  description: string
+  amount: number
+  category?: string
+  date?: string
+  payment_method?: string
 }
 
 export interface TareaPayload {
@@ -63,33 +61,33 @@ export interface TareaPayload {
 }
 
 export interface EventoPayload {
-  titulo: string
-  descripcion?: string
+  title: string
+  description?: string
   starts_at: string
   ends_at?: string
-  ubicacion?: string
+  location?: string
 }
 
 export interface HabitoPayload {
-  nombre: string
-  frecuencia?: string
+  name: string
+  frequency?: string
 }
 
 export interface NotaPayload {
-  contenido: string
-  titulo?: string
+  content: string
+  title?: string
 }
 
 export interface ProyectoPayload {
-  nombre: string
-  descripcion?: string
-  fecha_limite?: string
+  name: string
+  description?: string
+  due_date?: string
 }
 
 export interface WishlistPayload {
-  nombre: string
-  precio?: number
-  tienda?: string
+  name: string
+  price?: number
+  store?: string
   url?: string
 }
 

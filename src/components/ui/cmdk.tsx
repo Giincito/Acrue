@@ -208,44 +208,44 @@ export function CmdK() {
               Confianza baja ({Math.round((preview.confidence ?? 0) * 100)}%) — ¿Confirmar?
             </p>
             <div className="rounded-lg border bg-card p-3 text-sm font-mono space-y-1">
-              {preview.intent === 'tarea' && (
+              {preview.intent === 'create_task' && (
                 <>
                   <div className="font-bold mb-2 uppercase tracking-wide text-xs text-primary">Nueva tarea</div>
-                  {preview.preview?.title && (
+                  {(preview.preview as any)?.title && (
                     <div className="flex flex-col sm:flex-row sm:gap-2">
                       <span className="text-muted-foreground min-w-[80px]">Título:</span>
-                      <span className="font-medium">{String(preview.preview.title)}</span>
+                      <span className="font-medium">{String((preview.preview as any).title)}</span>
                     </div>
                   )}
-                  {preview.preview?.due_at && (
+                  {(preview.preview as any)?.due_at && (
                     <div className="flex flex-col sm:flex-row sm:gap-2">
                       <span className="text-muted-foreground min-w-[80px]">Fecha:</span>
-                      <span className="font-medium">{new Date(String(preview.preview.due_at)).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                      <span className="font-medium">{new Date(String((preview.preview as any).due_at)).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                     </div>
                   )}
-                  {preview.preview?.priority && (
+                  {(preview.preview as any)?.priority && (
                     <div className="flex flex-col sm:flex-row sm:gap-2">
                       <span className="text-muted-foreground min-w-[80px]">Prioridad:</span>
-                      <span className="font-medium capitalize">{String(preview.preview.priority)}</span>
+                      <span className="font-medium capitalize">{String((preview.preview as any).priority)}</span>
                     </div>
                   )}
                 </>
               )}
-              {preview.intent === 'gasto' && (
+              {preview.intent === 'create_expense' && (
                 <>
                   <div className="font-bold mb-2 uppercase tracking-wide text-xs text-primary">Nuevo gasto</div>
                   <div className="flex flex-col sm:flex-row sm:gap-2">
                     <span className="text-muted-foreground min-w-[80px]">Monto:</span>
-                    <span className="font-medium font-mono">${String(preview.preview?.monto)}</span>
+                    <span className="font-medium font-mono">${String((preview.preview as any)?.amount || (preview.preview as any)?.monto)}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:gap-2">
                     <span className="text-muted-foreground min-w-[80px]">Nota:</span>
-                    <span className="font-medium capitalize">{String(preview.preview?.descripcion || 'Sin nota')}</span>
+                    <span className="font-medium capitalize">{String((preview.preview as any)?.description || (preview.preview as any)?.descripcion || 'Sin nota')}</span>
                   </div>
                 </>
               )}
               {/* Fallback para otras intenciones genéricas */}
-              {preview.intent !== 'tarea' && preview.intent !== 'gasto' && Object.entries(preview.preview).map(([k, v]) => (
+              {preview.intent !== 'create_task' && preview.intent !== 'create_expense' && Object.entries(preview.preview).map(([k, v]) => (
                 <div key={k} className="flex flex-col sm:flex-row sm:gap-2">
                   <span className="text-muted-foreground min-w-[100px] capitalize">{k}:</span>
                   <span className="font-medium">{String(v)}</span>

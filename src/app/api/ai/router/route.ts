@@ -9,83 +9,83 @@ const UNDO_TTL_SECONDS = 5
 
 /** Maps an intent type to its Supabase table name */
 const INTENT_TABLE_MAP: Record<string, string> = {
-  gasto: 'expenses',
-  ingreso: 'expenses',
-  tarea: 'tasks',
-  evento: 'calendar_events',
-  habito: 'habits',
-  nota: 'notes',
-  proyecto: 'projects',
-  wishlist: 'wishlist_items',
+  create_expense: 'expenses',
+  create_task: 'tasks',
+  create_event: 'calendar_events',
+  create_habit: 'habits',
+  create_note: 'notes',
+  create_project: 'projects',
+  add_wishlist_item: 'wishlist_items',
 }
 
 /** Builds the Supabase row for each intent type */
-function buildRow(intent: string, payload: Record<string, unknown>, userId: string): Record<string, unknown> | null {
+function buildRow(intent: string, payload: any, userId: string): Record<string, unknown> | null {
   switch (intent) {
-    case 'gasto':
-    case 'ingreso': {
-      const p = payload as unknown as GastoPayload
+    case 'create_expense': {
       return {
         user_id: userId,
-        description: p.descripcion,
-        amount: intent === 'ingreso' ? Math.abs(Number(p.monto)) : -Math.abs(Number(p.monto)),
-        category: p.categoria ?? 'Sin categoría',
-        date: p.fecha ?? new Date().toISOString().split('T')[0],
-        payment_method: p.metodo_pago ?? null,
+        description: payload.description || payload.descripcion,
+        amount: -Math.abs(Number(payload.amount || payload.monto)),
+        category: (payload.category || payload.categoria) ?? 'Sin categoría',
+        date: (payload.date || payload.fecha) ?? new Date().toISOString().split('T')[0],
+        payment_method: payload.payment_method ?? null,
         source: 'ai',
       }
     }
-    case 'tarea': {
-      const p = payload as unknown as TareaPayload
+    case 'create_task': {
       return {
         user_id: userId,
-        title: p.title,
-        priority: p.priority ?? 2,
-        due_at: p.due_at ?? null,
+        title: payload.title || payload.titulo,
+        priority: payload.priority ?? 2,
+        due_at: (payload.due_date || payload.due_at) ?? null,
         status: 'inbox',
         source: 'ai',
       }
     }
-    case 'evento': {
-      const p = payload as unknown as EventoPayload
+    case 'create_event': {
       return {
         user_id: userId,
-        title: p.titulo,
-        description: p.descripcion ?? null,
-        starts_at: p.starts_at,
-        ends_at: p.ends_at ?? null,
-        location: p.ubicacion ?? null,
+        title: payload.title || payload.titulo,
+        description: payload.description ?? null,
+        starts_at: payload.starts_at || payload.date,
+        ends_at: payload.ends_at ?? null,
+        location: payload.location || payload.ubicacion ?? null,
         source: 'ai',
       }
     }
-    case 'habito': {
-      const p = payload as unknown as HabitoPayload
+    case 'create_habit': {
       return {
         user_id: userId,
-        name: p.nombre,
-        frequency: p.frecuencia ?? 'daily',
+        name: payload.name || payload.nombre,
+        frequency: (payload.frequency || payload.frecuencia) ?? 'daily',
         is_active: true,
       }
     }
-    case 'proyecto': {
-      const p = payload as unknown as ProyectoPayload
+    case 'create_project': {
       return {
         user_id: userId,
-        name: p.nombre,
-        description: p.descripcion ?? null,
-        due_date: p.fecha_limite ?? null,
+        name: payload.name || payload.nombre,
+        description: payload.description ?? null,
+        due_date: (payload.due_date || payload.fecha_limite) ?? null,
         status: 'active',
       }
     }
-    case 'wishlist': {
-      const p = payload as unknown as WishlistPayload
+    case 'add_wishlist_item': {
       return {
         user_id: userId,
-        name: p.nombre,
-        price: p.precio ?? null,
-        store: p.tienda ?? null,
-        url: p.url ?? null,
+        name: payload.name || payload.nombre,
+        price: (payload.price || payload.precio) ?? null,
+        store: (payload.store || payload.tienda) ?? null,
+        url: payload.url ?? null,
         status: 'deseado',
+      }
+    }
+    case 'create_note': {
+      return {
+        user_id: userId,
+        title: payload.title || '',
+        content: payload.content || payload.contenido || '',
+        source: 'ai',
       }
     }
     default:
@@ -94,16 +94,15 @@ function buildRow(intent: string, payload: Record<string, unknown>, userId: stri
 }
 
 /** Human-readable confirmation message per intent */
-function buildMessage(intent: string, payload: Record<string, unknown>): string {
+function buildMessage(intent: string, payload: any): string {
   switch (intent) {
-    case 'gasto': return `✓ Gasto registrado — ${payload.descripcion ?? 'Sin descripción'} $${Math.abs(Number(payload.monto ?? 0)).toLocaleString('es-AR')}`
-    case 'ingreso': return `✓ Ingreso registrado — ${payload.descripcion ?? 'Sin descripción'} $${Math.abs(Number(payload.monto ?? 0)).toLocaleString('es-AR')}`
-    case 'tarea': return `✓ Tarea creada — ${payload.titulo ?? 'Sin título'}`
-    case 'evento': return `✓ Evento agendado — ${payload.titulo ?? 'Sin título'}`
-    case 'habito': return `✓ Hábito registrado — ${payload.nombre ?? 'Sin nombre'}`
-    case 'nota': return `✓ Nota guardada`
-    case 'proyecto': return `✓ Proyecto creado — ${payload.nombre ?? 'Sin nombre'}`
-    case 'wishlist': return `✓ Agregado a wishlist — ${payload.nombre ?? 'Sin nombre'}`
+    case 'create_expense': return `✓ Gasto registrado — ${payload.description || payload.descripcion || 'Sin descripción'} $${Math.abs(Number(payload.amount || payload.monto || 0)).toLocaleString('es-AR')}`
+    case 'create_task': return `✓ Tarea creada — ${payload.title || payload.titulo || 'Sin título'}`
+    case 'create_event': return `✓ Evento agendado — ${payload.title || payload.titulo || 'Sin título'}`
+    case 'create_habit': return `✓ Hábito registrado — ${payload.name || payload.nombre || 'Sin nombre'}`
+    case 'create_note': return `✓ Nota guardada`
+    case 'create_project': return `✓ Proyecto creado — ${payload.name || payload.nombre || 'Sin nombre'}`
+    case 'add_wishlist_item': return `✓ Agregado a wishlist — ${payload.name || payload.nombre || 'Sin nombre'}`
     default: return `✓ Registrado`
   }
 }
