@@ -55,8 +55,7 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
     case 'create_event': {
       return {
         user_id: userId,
-        title: payload.title || payload.titulo,
-        description: payload.description ?? null,
+        title: payload.title || payload.description || payload.titulo,
         starts_at: payload.starts_at || payload.date,
         ends_at: payload.ends_at ?? null,
         location: (payload.location || payload.ubicacion) ?? null,

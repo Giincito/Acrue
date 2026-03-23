@@ -28,7 +28,6 @@ export const reminderRouter = router({
         .insert({
           user_id: ctx.user.id,
           title: input.title,
-          description: input.description,
           trigger_at: input.trigger_at,
           trigger_end_at: input.trigger_end_at || null,
           color: input.color,
@@ -71,7 +70,7 @@ export const reminderRouter = router({
   update: protectedProcedure
     .input(UpdateReminderSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updates } = input;
+      const { id, description, ...updates } = input;
       
       const { data, error } = await ctx.supabase
         .from('reminders')
@@ -89,7 +88,7 @@ export const reminderRouter = router({
       }
 
       // Background sync with Google Calendar
-      if (data.gcal_event_id && (updates.title || updates.trigger_at || updates.trigger_end_at !== undefined || updates.description !== undefined || updates.is_all_day !== undefined)) {
+      if (data.gcal_event_id && (updates.title || updates.trigger_at || updates.trigger_end_at !== undefined || description !== undefined || updates.is_all_day !== undefined)) {
         try {
           const { updateGoogleCalendarEvent } = await import('@/lib/google-calendar');
           await updateGoogleCalendarEvent(ctx.user.id, data.gcal_event_id!, {

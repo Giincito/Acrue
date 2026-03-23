@@ -130,7 +130,7 @@ export const taskRouter = router({
   update: protectedProcedure
     .input(UpdateTaskSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updates } = input;
+      const { id, description, ...updates } = input;
       
       const { data, error } = await ctx.supabase
         .from('tasks')
@@ -148,7 +148,7 @@ export const taskRouter = router({
       }
 
       // Background sync with Google Calendar
-      if (data.gcal_event_id && (updates.title || updates.due_at || updates.start_time || updates.end_time || updates.description !== undefined)) {
+      if (data.gcal_event_id && (updates.title || updates.due_at || updates.start_time || updates.end_time || description !== undefined)) {
         try {
           const { updateGoogleCalendarEvent } = await import('@/lib/google-calendar');
           const payload = {

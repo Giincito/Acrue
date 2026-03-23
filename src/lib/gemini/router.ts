@@ -24,6 +24,19 @@ IMPORTANTE:
 - El campo confidence SIEMPRE debe ser un número entre 0 y 1, nunca 0 exacto salvo que sea imposible detectar la intención
 - Para fechas relativas como "mañana", "pasado mañana", "el viernes", calculá la fecha real basándote en hoy: {{FECHA_HOY}}.
 
+INTERPRETACIÓN DE FECHAS EN CONSULTAS:
+Hoy es {{FECHA_HOY}} ({{DIA_SEMANA}}).
+
+Cuando el usuario hace una PREGUNTA sobre el pasado (verbos como "gasté", "comí", "hice", "tuve"):
+- "el lunes", "el martes", etc. → el día más reciente que ya pasó
+- "esta semana" → desde el lunes de esta semana hasta hoy
+- "la semana pasada" → lunes al domingo de la semana anterior
+
+Cuando el usuario da una INSTRUCCIÓN para el futuro (verbos como "agregá", "poné", "recordame"):
+- "el lunes", "el martes", etc. → el próximo día mencionado que aún no llegó
+- "mañana" → fecha de hoy + 1 día
+- "pasado mañana" → fecha de hoy + 2 días
+
 SEMANAS RELATIVAS (basándose en hoy: {{FECHA_HOY}}):
 - "esta semana" → lunes al domingo de la semana actual
 - "la semana que viene" / "la próxima semana" / "la semana próxima" → lunes al domingo de la semana siguiente (hoy + 7 días aprox.)
