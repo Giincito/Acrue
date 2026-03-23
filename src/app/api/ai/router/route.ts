@@ -59,7 +59,6 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
         title: payload.title || payload.description || payload.titulo,
         trigger_at: rawStart.includes('T') ? rawStart : `${rawStart}T12:00:00-03:00`,
         trigger_end_at: payload.end_at || payload.ends_at || null,
-        source: 'ai',
       }
     }
     case 'create_habit': {
