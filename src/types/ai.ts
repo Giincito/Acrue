@@ -63,8 +63,11 @@ export interface TareaPayload {
 export interface EventoPayload {
   title: string
   description?: string
-  starts_at: string
+  start_at?: string
+  starts_at?: string
+  end_at?: string
   ends_at?: string
+  date?: string
   location?: string
 }
 

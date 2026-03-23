@@ -79,18 +79,18 @@ export async function buildChatContext(
 
     const { data: events } = await supabase
       .from('calendar_events')
-      .select('title, starts_at, ends_at, location')
+      .select('title, start_at, end_at, location')
       .eq('user_id', userId)
-      .gte('starts_at', now)
-      .lte('starts_at', inTwoWeeks)
-      .order('starts_at', { ascending: true })
+      .gte('start_at', now)
+      .lte('start_at', inTwoWeeks)
+      .order('start_at', { ascending: true })
       .limit(10)
 
     if (events?.length) {
       parts.push(`\n📅 PRÓXIMOS EVENTOS (próximas 2 semanas):`)
       events.forEach((e) => {
-        const date = new Date(e.starts_at).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
-        const time = new Date(e.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+        const date = new Date(e.start_at).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+        const time = new Date(e.start_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         parts.push(`  • ${date} a las ${time}: ${e.title}${e.location ? ` (${e.location})` : ''}`)
       })
     }

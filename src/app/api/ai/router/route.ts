@@ -56,8 +56,8 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
       return {
         user_id: userId,
         title: payload.title || payload.description || payload.titulo,
-        starts_at: payload.starts_at || payload.date,
-        ends_at: payload.ends_at ?? null,
+        start_at: payload.start_at || payload.starts_at || payload.date,
+        end_at: payload.end_at || payload.ends_at || null,
         location: (payload.location || payload.ubicacion) ?? null,
         source: 'ai',
       }
