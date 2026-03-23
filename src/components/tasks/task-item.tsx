@@ -117,7 +117,7 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
         <button
           onClick={handleCheckboxClick}
           className={cn(
-            "flex-shrink-0 w-6 h-6 rounded-full border mr-4 flex items-center justify-center transition-all duration-300",
+            "flex-shrink-0 w-6 h-6 rounded-full border mr-4 flex items-center justify-center transition-all duration-300 cursor-pointer",
             isCompleted 
               ? "bg-primary border-primary text-primary-foreground shadow-sm" 
               : "border-muted-foreground/40 hover:border-primary hover:bg-primary/10 hover:scale-110 shadow-sm"
