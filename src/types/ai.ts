@@ -32,6 +32,10 @@ export interface RouterResponse {
   preview?: IntentPayload
   intent?: IntentType
   confidence?: number
+  action_result?: {
+    success: boolean
+    id?: string
+  }
 }
 
 /** Undo payload stored in Redis with 5s TTL */

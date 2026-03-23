@@ -175,11 +175,15 @@ export async function POST(req: Request) {
       })
     }
 
+    console.log(`[router] Inserting into ${table}:`, row)
+
     const { data: inserted, error: dbError } = await supabase
       .from(table)
       .insert(row)
       .select('id')
       .single()
+      
+    console.log('[router] Insert result:', { data: inserted, error: dbError })
 
     if (dbError) {
       console.error('[ai/router] DB insert error:', dbError)
@@ -201,13 +205,14 @@ export async function POST(req: Request) {
       await redis.set(undoId, JSON.stringify(undoPayload), { ex: UNDO_TTL_SECONDS })
     }
 
-    return NextResponse.json<RouterResponse>({
+    return NextResponse.json<RouterResponse & { action_result: { success: boolean; id?: string } }>({
       executed: true,
       message: buildMessage(intent, payload as Record<string, unknown>),
       recordId,
       undoId,
       intent,
       confidence,
+      action_result: { success: true, id: recordId }
     })
   } catch (err: any) {
     console.error('[ai/router] Unexpected error:', err)

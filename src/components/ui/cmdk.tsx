@@ -6,6 +6,7 @@ import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, C
 import { AiThinking } from '@/components/ui/ai-thinking'
 import { showUndoToast } from '@/components/ui/undo-toast'
 import { useGeminiDebounce } from '@/hooks/use-gemini-debounce'
+import { trpc } from '@/lib/trpc'
 import type { RouterResponse, IntentPayload } from '@/types/ai'
 
 // ── Slash commands ────────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ async function callRouter(text: string): Promise<RouterResponse> {
 
 export function CmdK() {
   const router = useRouter()
+  const utils = trpc.useUtils()
   const [open, setOpen] = React.useState(false)
   const [input, setInput] = React.useState('')
   const [state, setState] = React.useState<CmdKState>('idle')
@@ -123,11 +125,19 @@ export function CmdK() {
           sessionStorage.setItem('acrue_last_undo_id', result.undoId)
         }
         handleClose(false)
+        
+        // Invalidate common lists to keep UI fresh
+        utils.tasks.list.invalidate()
+        if (utils.projects) utils.projects.list.invalidate()
+        if (utils.reminders) utils.reminders.list.invalidate()
+        // If there's a calendar router, we'd invalidate it too, it's safer to just invalidate what we know.
+
         showUndoToast({
           message: result.message,
           undoId: result.undoId,
           onUndo: () => {
             sessionStorage.removeItem('acrue_last_undo_id')
+            utils.tasks.list.invalidate() // refresh again on undo
           },
         })
       } else {
@@ -156,7 +166,16 @@ export function CmdK() {
       const result = await callRouter(confirmText)
       if (result.undoId) sessionStorage.setItem('acrue_last_undo_id', result.undoId)
       handleClose(false)
-      showUndoToast({ message: result.message, undoId: result.undoId, onUndo: () => {} })
+
+      utils.tasks.list.invalidate()
+      if (utils.projects) utils.projects.list.invalidate()
+      if (utils.reminders) utils.reminders.list.invalidate()
+
+      showUndoToast({ 
+        message: result.message, 
+        undoId: result.undoId, 
+        onUndo: () => { utils.tasks.list.invalidate() } 
+      })
     } catch {
       setState('idle')
     }
