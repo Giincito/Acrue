@@ -30,6 +30,10 @@ export const taskRouter = router({
       }
       const todayEndIso = todayEnd.toISOString()
 
+      const todayStart = new Date(todayEnd.getTime());
+      todayStart.setHours(0, 0, 0, 0);
+      const todayStartIso = todayStart.toISOString();
+
       if (input?.status === "inbox") {
         query = query.or(`status.eq.inbox,status.eq.someday`)
       } else if (input?.status === "active") {
@@ -41,7 +45,7 @@ export const taskRouter = router({
       } else if (input?.status === "trash") {
         query = query.eq('status', 'trash')
       } else if (input?.status === "today") {
-        query = query.neq('status', 'completed').neq('status', 'trash').not('due_at', 'is', null).lte('due_at', todayEndIso)
+        query = query.neq('status', 'completed').neq('status', 'trash').not('due_at', 'is', null).gte('due_at', todayStartIso).lte('due_at', todayEndIso)
       } else if (input?.status === "upcoming") {
         query = query.neq('status', 'completed').neq('status', 'trash').not('due_at', 'is', null).gt('due_at', todayEndIso)
       }
