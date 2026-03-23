@@ -53,10 +53,11 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
       }
     }
     case 'create_event': {
+      const rawStart = payload.start_at || payload.starts_at || payload.date;
       return {
         user_id: userId,
         title: payload.title || payload.description || payload.titulo,
-        start_at: payload.start_at || payload.starts_at || payload.date,
+        start_at: rawStart.includes('T') ? rawStart : `${rawStart}T12:00:00-03:00`,
         end_at: payload.end_at || payload.ends_at || null,
         location: (payload.location || payload.ubicacion) ?? null,
         source: 'ai',
