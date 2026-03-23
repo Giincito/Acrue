@@ -21,7 +21,8 @@ import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { CreateProjectSchema, type CreateProjectInput } from "@/server/schema/project"
-import { Plus, CalendarIcon, Palette, Smile } from "lucide-react"
+import { IconPicker } from "@/components/ui/icon-picker"
+import { Plus, CalendarIcon, Palette } from "lucide-react"
 
 interface CreateProjectFormProps {
   onSuccess?: () => void
@@ -77,18 +78,31 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4 px-1">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input placeholder="Nombre del proyecto..." {...field} className="text-lg bg-transparent border-none shadow-none focus-visible:ring-0 px-2 h-auto font-medium" autoFocus />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex items-center gap-2 px-1">
+          <FormField
+            control={form.control}
+            name="icon"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <IconPicker value={field.value} onChange={field.onChange} disabled={createMutation.isPending} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input placeholder="Nombre del proyecto..." disabled={createMutation.isPending} {...field} className="text-lg bg-transparent border-none shadow-none focus-visible:ring-0 px-2 h-auto font-medium" autoFocus />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="description"
@@ -103,22 +117,6 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
         />
         
         <div className="flex gap-4">
-          <FormField
-            control={form.control}
-            name="icon"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormControl>
-                  <div className="relative">
-                    <Smile className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Ícono (ej: 🚀)" {...field} value={field.value || ""} className="pl-8 text-sm" />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           <FormField
             control={form.control}
             name="color"

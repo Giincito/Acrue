@@ -20,6 +20,7 @@ export const CreateTaskSchema = z.object({
   color: z.string().optional().nullable(),
   university_type: z.string().optional().nullable(),
   gcal_event_id: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
 });
 
 export const UpdateTaskSchema = CreateTaskSchema.partial().extend({

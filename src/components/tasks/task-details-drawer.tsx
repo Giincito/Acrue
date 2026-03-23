@@ -12,6 +12,7 @@ import { CalendarIcon, Tag, FolderKanban, Flag, Circle, CheckCircle2, PaintBucke
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
+import { IconPicker } from "@/components/ui/icon-picker"
 import { cn } from "@/lib/utils"
 
 interface TaskDetailsDrawerProps {
@@ -121,7 +122,12 @@ export function TaskDetailsDrawer({ task: initialTask, open, onOpenChange }: Tas
         
         <div className="flex flex-col gap-6 p-6">
           {/* Title Editor */}
-          <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <IconPicker 
+              value={task.icon} 
+              onChange={(v) => handleUpdate('icon', v)} 
+              disabled={task.status === "completed"} 
+            />
             <Input 
               value={title}
               disabled={task.status === "completed"}

@@ -1,3 +1,9 @@
 {
-  "name": "acrue"
+  "name": "acrue",
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-trash",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }

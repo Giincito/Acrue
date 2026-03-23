@@ -23,6 +23,7 @@ export type Task = {
   color?: string | null;
   university_type?: string | null;
   is_recurring?: boolean | null;
+  icon?: string | null;
 };
 
 interface TaskState {

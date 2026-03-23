@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { es } from "date-fns/locale/es"
 import { cn } from "@/lib/utils"
+import { IconPicker } from "@/components/ui/icon-picker"
 import { PaintBucket, CalendarIcon, Plus } from "lucide-react"
 
 const priorityMap: Record<string, string> = { "1": "Alta (1)", "2": "Media (2)", "3": "Baja (3)" }
@@ -100,18 +101,31 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input placeholder="Ej: Pagar la luz..." {...field} className="text-lg bg-transparent border-none shadow-none focus-visible:ring-0 pl-4 pr-2 h-auto font-medium" autoFocus />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex items-center gap-2">
+          <FormField
+            control={form.control}
+            name="icon"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <IconPicker value={field.value} onChange={field.onChange} disabled={createMutation.isPending} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input placeholder="Ej: Pagar la luz..." {...field} className="text-lg bg-transparent border-none shadow-none focus-visible:ring-0 pl-1 pr-2 h-auto font-medium" autoFocus />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
         <div className="flex flex-wrap items-center gap-2">
           {/* Default due_at popover */}

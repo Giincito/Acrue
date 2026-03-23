@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { TaskListView } from "@/components/tasks/task-list-view"
+import { IconPicker } from "@/components/ui/icon-picker"
 
 // Aesthetically pleasing colors aligned with Antigravity Premium
 const PROJECT_COLORS = [
@@ -24,8 +25,6 @@ const PROJECT_COLORS = [
   { name: "Emerald", value: "#059669" },
   { name: "Indigo", value: "#4f46e5" },
 ]
-
-const ICONS = ["🚀", "💻", "📚", "🏠", "🌟", "💡", "💰", "🎨", "📈", "🎯", "⚡", "🔥", "✨", "🎉", "🏆", "🌿"]
 
 interface Project {
   id: string;
@@ -142,40 +141,13 @@ export function ProjectDetailsDrawer({ project: initialProject, open, onOpenChan
         
         <div className="flex flex-col gap-6 p-6">
           {/* Header Editor: Icon + Name */}
-          <div className="space-y-1 flex items-start gap-4">
-             <div className="w-12 pt-1 shrink-0 flex justify-center">
-                <Popover>
-                  <PopoverTrigger disabled={project.status === "completed"} className="w-12 h-12 flex items-center justify-center text-3xl font-emoji rounded-xl hover:bg-muted/50 transition-colors disabled:opacity-70 disabled:hover:bg-transparent border border-transparent hover:border-border">
-                    {iconVal || "🚀"}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[280px] p-3 shadow-xl rounded-xl" align="start">
-                    <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Selecciona un ícono</p>
-                    <div className="grid grid-cols-6 gap-1">
-                       {ICONS.map(i => (
-                         <button 
-                           key={i} 
-                           type="button"
-                           className="text-2xl hover:bg-muted p-1 rounded-md transition-colors flex items-center justify-center font-emoji"
-                           onClick={() => {
-                             setIconVal(i)
-                             handleUpdate('icon', i)
-                           }}
-                         >{i}</button>
-                       ))}
-                       <div className="col-span-6 mt-2 pt-2 border-t space-y-2">
-                          <label className="text-xs font-medium px-1 block text-muted-foreground">O escribe tu Emoji</label>
-                          <Input 
-                            value={iconVal}
-                            onChange={(e) => setIconVal(e.target.value)}
-                            onBlur={() => handleTextBlur('icon', iconVal)}
-                            maxLength={2}
-                            placeholder="👽"
-                            className="bg-muted/30 focus-visible:bg-transparent font-emoji text-lg h-9"
-                          />
-                       </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+          <div className="space-y-1 flex items-center gap-4">
+             <div className="pt-1 shrink-0 flex justify-center">
+                 <IconPicker 
+                   value={project.icon} 
+                   onChange={(v) => handleUpdate('icon', v)} 
+                   disabled={project.status === "completed"} 
+                 />
              </div>
             <Input 
               value={name}

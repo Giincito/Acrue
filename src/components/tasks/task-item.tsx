@@ -9,6 +9,7 @@ import { es } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
 import { Task } from "@/store/useTaskStore"
+import { TaskIcon } from "@/components/ui/TaskIcon"
 
 interface TaskItemProps {
   task: Task
@@ -141,12 +142,15 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
 
         {/* Content */}
           <div className="flex-1 min-w-0 flex flex-row items-center gap-4 overflow-hidden pr-2">
-            <p className={cn(
-              "text-sm font-medium truncate transition-all text-foreground shrink-0",
-              isCompleted && "line-through text-muted-foreground opacity-80"
-            )}>
-              {task.title}
-            </p>
+            <div className="flex items-center gap-2 shrink-0 truncate">
+              <TaskIcon icon={task.icon} size={16} />
+              <p className={cn(
+                "text-sm font-medium truncate transition-all text-foreground",
+                isCompleted && "line-through text-muted-foreground opacity-80"
+              )}>
+                {task.title}
+              </p>
+            </div>
             
             <div className={cn(
               "flex flex-nowrap items-center gap-2 text-xs font-medium text-muted-foreground/80 dark:text-muted-foreground shrink-0 overflow-hidden ml-auto",

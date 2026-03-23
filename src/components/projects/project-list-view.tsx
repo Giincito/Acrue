@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { ProjectDetailsDrawer } from "./project-details-drawer"
+import { TaskIcon } from "@/components/ui/TaskIcon"
 
 export function ProjectListView({ onCreateClick }: { onCreateClick?: () => void }) {
   const { data: projects, isLoading } = trpc.projects.list.useQuery()
@@ -52,10 +53,11 @@ export function ProjectListView({ onCreateClick }: { onCreateClick?: () => void 
           >
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
+                <TaskIcon icon={project.icon} size={18} />
                 {project.color && (
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} />
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
                 )}
-                <h3 className="font-medium text-lg tracking-tight group-hover:text-accent transition-colors">{project.name}</h3>
+                <h3 className="font-medium text-lg tracking-tight group-hover:text-accent transition-colors truncate">{project.name}</h3>
               </div>
               <span className={cn(
                 "px-2 py-0.5 text-xs font-medium rounded-full",
