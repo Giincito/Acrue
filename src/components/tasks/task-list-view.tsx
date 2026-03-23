@@ -8,6 +8,7 @@ import { Loader2, Plus } from "lucide-react"
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
+import { startOfDay, endOfDay } from "date-fns"
 
 const TaskDetailsDrawer = dynamic(
   () => import("@/components/tasks/task-details-drawer").then((mod) => mod.TaskDetailsDrawer),
@@ -27,9 +28,9 @@ export function TaskListView({ status, contextTag, priority, projectId, emptyTex
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false)
   
-  // Fetch tasks using client local timezone boundary
-  const todayEnd = new Date()
-  todayEnd.setHours(23, 59, 59, 999)
+  // Fetch tasks using exact timezone-safe boundaries from the client's clock
+  const todayStart = startOfDay(new Date()).toISOString()
+  const todayEnd = endOfDay(new Date()).toISOString()
 
   // Use a global 'active' query for all core lists to prevent duplicate-store race conditions
   const queryStatus = (status === "trash" || status === "completed" || status === "all") ? status : "active";
@@ -39,7 +40,8 @@ export function TaskListView({ status, contextTag, priority, projectId, emptyTex
       context_tag: contextTag,
       priority: priority,
       project_id: projectId,
-      clientDate: todayEnd.toISOString()
+      clientStartDate: todayStart,
+      clientEndDate: todayEnd,
   })
   
   const serverTasks = (data as unknown as Task[]) || [];
@@ -57,7 +59,8 @@ export function TaskListView({ status, contextTag, priority, projectId, emptyTex
       context_tag: contextTag,
       priority: priority,
       project_id: projectId,
-      clientDate: todayEnd.toISOString()
+      clientStartDate: todayStart,
+      clientEndDate: todayEnd,
     }, (oldData: any) => {
       if (!oldData) return oldData;
       return oldData.map((t: any) => t.id === id ? { ...t, status: "completed", completed_at: new Date().toISOString() } : t);
@@ -82,7 +85,8 @@ export function TaskListView({ status, contextTag, priority, projectId, emptyTex
       context_tag: contextTag,
       priority: priority,
       project_id: projectId,
-      clientDate: todayEnd.toISOString()
+      clientStartDate: todayStart,
+      clientEndDate: todayEnd,
     }, (oldData: any) => {
       if (!oldData) return oldData;
       return oldData.map((t: any) => t.id === id ? { ...t, status: "inbox", completed_at: null } : t);
@@ -106,7 +110,8 @@ export function TaskListView({ status, contextTag, priority, projectId, emptyTex
       context_tag: contextTag,
       priority: priority,
       project_id: projectId,
-      clientDate: todayEnd.toISOString()
+      clientStartDate: todayStart,
+      clientEndDate: todayEnd,
     }, (oldData: any) => {
       if (!oldData) return oldData;
       return oldData.map((t: any) => t.id === id ? { ...t, status: "inbox", deleted_at: null } : t);
@@ -126,7 +131,8 @@ export function TaskListView({ status, contextTag, priority, projectId, emptyTex
       context_tag: contextTag,
       priority: priority,
       project_id: projectId,
-      clientDate: todayEnd.toISOString()
+      clientStartDate: todayStart,
+      clientEndDate: todayEnd,
     }, (oldData: any) => {
       if (!oldData) return oldData;
       return oldData.filter((t: any) => t.id !== id);
@@ -185,12 +191,13 @@ export function TaskListView({ status, contextTag, priority, projectId, emptyTex
       
       if (status === "today") {
         if (!t.due_at) return false;
-        if (new Date(t.due_at) > todayEnd) return false;
+        const due = new Date(t.due_at);
+        if (due < new Date(todayStart) || due > new Date(todayEnd)) return false;
       }
       
       if (status === "upcoming") {
         if (!t.due_at) return false;
-        if (new Date(t.due_at) <= todayEnd) return false;
+        if (new Date(t.due_at) <= new Date(todayEnd)) return false;
       }
     }
 

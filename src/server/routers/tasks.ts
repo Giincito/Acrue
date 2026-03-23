@@ -10,7 +10,8 @@ export const taskRouter = router({
       status: z.string().optional(),
       context_tag: z.string().optional(),
       priority: z.number().int().optional(),
-      clientDate: z.string().datetime().optional(),
+      clientStartDate: z.string().datetime().optional(),
+      clientEndDate: z.string().datetime().optional(),
       project_id: z.string().uuid().optional()
     }).optional())
     .query(async ({ ctx, input }) => {
@@ -23,16 +24,10 @@ export const taskRouter = router({
         query = query.is('deleted_at', null);
       }
 
-      // Use client date or fallback to server time if not provided
-      const todayEnd = input?.clientDate ? new Date(input.clientDate) : new Date();
-      if (!input?.clientDate) {
-        todayEnd.setHours(23, 59, 59, 999);
-      }
-      const todayEndIso = todayEnd.toISOString()
-
-      const todayStart = new Date(todayEnd.getTime());
-      todayStart.setHours(0, 0, 0, 0);
-      const todayStartIso = todayStart.toISOString();
+      // Use timezone-safe client dates if provided, otherwise fallback to server local time via date-fns
+      const { startOfDay, endOfDay } = require('date-fns');
+      const todayStartIso = input?.clientStartDate ?? startOfDay(new Date()).toISOString();
+      const todayEndIso = input?.clientEndDate ?? endOfDay(new Date()).toISOString();
 
       if (input?.status === "inbox") {
         query = query.or(`status.eq.inbox,status.eq.someday`)
