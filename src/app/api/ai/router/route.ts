@@ -11,7 +11,7 @@ const UNDO_TTL_SECONDS = 5
 const INTENT_TABLE_MAP: Record<string, string> = {
   create_expense: 'expenses',
   create_task: 'tasks',
-  create_event: 'calendar_events',
+  create_event: 'reminders',
   create_habit: 'habits',
   create_note: 'notes',
   create_project: 'projects',
@@ -57,9 +57,8 @@ function buildRow(intent: string, payload: any, userId: string): Record<string, 
       return {
         user_id: userId,
         title: payload.title || payload.description || payload.titulo,
-        start_at: rawStart.includes('T') ? rawStart : `${rawStart}T12:00:00-03:00`,
-        end_at: payload.end_at || payload.ends_at || null,
-        location: (payload.location || payload.ubicacion) ?? null,
+        trigger_at: rawStart.includes('T') ? rawStart : `${rawStart}T12:00:00-03:00`,
+        trigger_end_at: payload.end_at || payload.ends_at || null,
         source: 'ai',
       }
     }

@@ -54,6 +54,29 @@ export function CmdK() {
   // Debounced router call — fires 400ms after user stops typing (not for slash cmds)
   const debouncedRouter = useGeminiDebounce(callRouter, 400)
 
+  // ── Cache Invalidation Helper ────────────────────────────────────────────
+  const invalidateIntent = React.useCallback(async (intentName?: string) => {
+    switch (intentName) {
+      case 'create_event':
+        await utils.reminders?.list?.invalidate()
+        break
+      case 'create_task':
+        await utils.tasks?.list?.invalidate()
+        break
+      case 'create_project':
+        await utils.projects?.list?.invalidate()
+        break
+      case 'create_expense':
+      case 'create_note':
+        // Future endpoints if added
+        break
+      default:
+        await utils.tasks?.list?.invalidate()
+        await utils.reminders?.list?.invalidate()
+        if (utils.projects) await utils.projects.list.invalidate()
+    }
+  }, [utils])
+
   // ── Keyboard shortcut ────────────────────────────────────────────────────
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -126,18 +149,15 @@ export function CmdK() {
         }
         handleClose(false)
         
-        // Invalidate common lists to keep UI fresh
-        utils.tasks.list.invalidate()
-        if (utils.projects) utils.projects.list.invalidate()
-        if (utils.reminders) utils.reminders.list.invalidate()
-        // If there's a calendar router, we'd invalidate it too, it's safer to just invalidate what we know.
+        // Invalidate specific list to keep UI fast and fresh
+        await invalidateIntent(result.intent)
 
         showUndoToast({
           message: result.message,
           undoId: result.undoId,
-          onUndo: () => {
+          onUndo: async () => {
             sessionStorage.removeItem('acrue_last_undo_id')
-            utils.tasks.list.invalidate() // refresh again on undo
+            await invalidateIntent(result.intent) // refresh again on undo
           },
         })
       } else {
@@ -162,19 +182,18 @@ export function CmdK() {
     setState('thinking')
     // Re-submit with the preview payload including a confidence boost hint
     try {
-      const confirmText = JSON.stringify({ _forceIntent: preview.intent, ...preview.preview })
+      const confirmTextInfo = { _forceIntent: preview.intent, ...preview.preview };
+      const confirmText = JSON.stringify(confirmTextInfo)
       const result = await callRouter(confirmText)
       if (result.undoId) sessionStorage.setItem('acrue_last_undo_id', result.undoId)
       handleClose(false)
 
-      utils.tasks.list.invalidate()
-      if (utils.projects) utils.projects.list.invalidate()
-      if (utils.reminders) utils.reminders.list.invalidate()
+      await invalidateIntent(confirmTextInfo._forceIntent)
 
       showUndoToast({ 
         message: result.message, 
         undoId: result.undoId, 
-        onUndo: () => { utils.tasks.list.invalidate() } 
+        onUndo: async () => { await invalidateIntent(confirmTextInfo._forceIntent) } 
       })
     } catch {
       setState('idle')
