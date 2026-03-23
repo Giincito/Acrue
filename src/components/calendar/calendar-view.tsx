@@ -148,13 +148,12 @@ export function CalendarView() {
   const events = React.useMemo(() => {
     const calendarEvents: any[] = []
     
-    // Add local tasks
     if (tasks) {
       calendarEvents.push(...tasks
         .filter((task) => task.due_at)
         .map((task) => ({
           id: task.id,
-          title: task.title,
+          title: `[Tarea] ${task.title}`,
           start: new Date(task.start_time || task.due_at!),
           end: new Date(task.end_time || task.start_time || task.due_at!),
           allDay: !task.start_time,
@@ -388,7 +387,7 @@ export function CalendarView() {
       <BigCalendar
         className={`mt-2 mb-8 ${view === 'day' ? 'is-day-view' : ''}`}
         localizer={localizer}
-        events={view === 'month' ? events : []}
+        events={events}
         components={components}
         startAccessor="start"
         endAccessor="end"
@@ -484,6 +483,7 @@ export function CalendarView() {
             week: "Semana",
             day: "Día",
             agenda: "Agenda",
+            noEventsInRange: "No hay eventos ni tareas en este rango.",
           }}
         />
       
