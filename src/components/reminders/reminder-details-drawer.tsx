@@ -5,12 +5,53 @@ import { trpc } from "@/lib/trpc"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { CalendarClock, Circle, CheckCircle2, PaintBucket, Trash2 } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Circle, CheckCircle2, PaintBucket, Trash2 } from "lucide-react"
+import { GenericColorLabel, GenericColorSelectItems } from "@/components/shared/generic-color-select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DEFAULT_GENERIC_COLOR } from "@/lib/generic-colors"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
-export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { reminder: any | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+interface ReminderDetails {
+  id: string
+  title: string
+  description: string | null
+  trigger_at: string
+  trigger_end_at: string | null
+  is_all_day: boolean
+  is_completed: boolean
+  color: string | null
+}
+
+type ReminderUpdate = Partial<
+  Pick<
+    ReminderDetails,
+    "title" | "description" | "trigger_at" | "trigger_end_at" | "is_all_day" | "is_completed"
+  >
+> & { color?: string }
+
+const DETAIL_TITLE_INPUT_CLASS =
+  "min-h-11 w-full rounded-xl border-0 bg-transparent px-3 py-2 text-2xl font-medium shadow-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-text disabled:bg-muted/40 disabled:opacity-100"
+
+const DETAIL_SELECT_TRIGGER_CLASS =
+  "h-11 min-h-11 w-full justify-between rounded-lg border-0 bg-muted/35 px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+
+const DETAIL_TIME_INPUT_CLASS =
+  "h-11 min-h-11 rounded-lg border-0 bg-muted/35 px-3 py-2 text-sm font-medium shadow-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+
+const DETAIL_FIELD_LABEL_CLASS =
+  "px-1 text-[10px] font-medium uppercase text-muted-foreground"
+
+export function ReminderDetailsDrawer({
+  reminder,
+  open,
+  onOpenChange,
+}: {
+  reminder: ReminderDetails | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const updateMutation = trpc.reminders.update.useMutation()
   const deleteMutation = trpc.reminders.delete.useMutation()
   const utils = trpc.useUtils()
@@ -44,7 +85,9 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
   }, [reminder])
 
   const saveDateRange = (sd: string, st: string, ed: string, et: string) => {
-    let startStr = `${sd || format(new Date(), "yyyy-MM-dd")}T${st || "00:00:00"}`
+    if (!reminder) return
+
+    const startStr = `${sd || format(new Date(), "yyyy-MM-dd")}T${st || "00:00:00"}`
     let endDateTime: string | null = null;
     
     if (ed) {
@@ -57,7 +100,7 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
     const newEndISO = endDateTime ? new Date(endDateTime).toISOString() : null;
     const isAllDay = !st && !et;
 
-    const updates: any = {};
+    const updates: ReminderUpdate = {};
     if (newStartISO !== reminder.trigger_at) updates.trigger_at = newStartISO;
     if (newEndISO !== (reminder.trigger_end_at || null)) updates.trigger_end_at = newEndISO;
     if (isAllDay !== reminder.is_all_day) updates.is_all_day = isAllDay;
@@ -67,10 +110,10 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
     }
   }
 
-  const handleBatchUpdate = async (updates: any) => {
+  const handleBatchUpdate = async (updates: ReminderUpdate) => {
     if (!reminder) return
     
-    utils.reminders.list.setData(undefined, (old) => {
+    utils.reminders.list.setData(undefined, (old: ReminderDetails[] | undefined) => {
       if (!old) return old
       return old.map(r => r.id === reminder.id ? { ...r, ...updates } : r)
     })
@@ -80,16 +123,16 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
         id: reminder.id,
         ...updates
       })
-    } catch (e) {
-      console.error(`Failed to update reminder`, e)
+    } catch {
+      toast.error("No se pudo actualizar el recordatorio")
     }
   }
 
-  const handleUpdate = async (field: string, value: any) => {
+  const handleUpdate = async <K extends keyof ReminderUpdate>(field: K, value: ReminderUpdate[K]) => {
     if (!reminder) return
     
     // Optimistically update the query cache
-    utils.reminders.list.setData(undefined, (old) => {
+    utils.reminders.list.setData(undefined, (old: ReminderDetails[] | undefined) => {
       if (!old) return old
       return old.map(r => r.id === reminder.id ? { ...r, [field]: value } : r)
     })
@@ -99,8 +142,8 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
         id: reminder.id,
         [field]: value
       })
-    } catch (e) {
-      console.error(`Failed to update reminder ${field}`, e)
+    } catch {
+      toast.error("No se pudo actualizar el recordatorio")
     }
   }
 
@@ -116,22 +159,30 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
     const isCompleted = reminder.is_completed
     const newStatus = !isCompleted
     
-    utils.reminders.list.setData(undefined, (old) => {
+    utils.reminders.list.setData(undefined, (old: ReminderDetails[] | undefined) => {
       if (!old) return old
       return old.map(r => r.id === reminder.id ? { ...r, is_completed: newStatus } : r)
     })
     
-    updateMutation.mutateAsync({
+    void updateMutation.mutateAsync({
       id: reminder.id,
       is_completed: newStatus,
+    }).catch(() => {
+      toast.error("No se pudo cambiar el estado")
+      utils.reminders.list.invalidate()
     })
   }
 
   const handleDelete = async () => {
     if (!reminder) return
     onOpenChange(false)
-    await deleteMutation.mutateAsync({ id: reminder.id })
-    utils.reminders.list.invalidate()
+    try {
+      await deleteMutation.mutateAsync({ id: reminder.id })
+      utils.reminders.list.invalidate()
+    } catch {
+      toast.error("No se pudo eliminar el recordatorio")
+      utils.reminders.list.invalidate()
+    }
   }
 
   if (!reminder) return null
@@ -140,12 +191,12 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md w-full overflow-y-auto border-l shadow-2xl bg-background/95 backdrop-blur-sm p-0">
          <SheetHeader className="px-6 py-4 border-b bg-card/50 sticky top-0 z-10 backdrop-blur-md">
-           <SheetTitle className="sr-only">Detalles del Recordatorio</SheetTitle>
+           <SheetTitle className="sr-only">Detalles del recordatorio</SheetTitle>
            <SheetDescription className="sr-only">Edita tu recordatorio.</SheetDescription>
            
            <div className="flex justify-between items-center w-full">
              <div className="flex items-center gap-3">
-               <button onClick={toggleStatus} className="text-muted-foreground hover:text-accent transition-colors">
+                <button type="button" onClick={toggleStatus} aria-label={reminder.is_completed ? "Marcar recordatorio como activo" : "Marcar recordatorio como completado"} aria-pressed={reminder.is_completed} className="text-muted-foreground hover:text-accent transition-colors cursor-pointer">
                  {reminder.is_completed ? (
                    <CheckCircle2 className="w-6 h-6 text-accent" />
                  ) : (
@@ -153,11 +204,11 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
                  )}
                </button>
                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {reminder.is_completed ? "Acusado recibo" : "Recordatorio Activo"}
+                  {reminder.is_completed ? "Acusado recibo" : "Recordatorio activo"}
                </p>
              </div>
              
-             <button onClick={handleDelete} className="text-muted-foreground hover:text-destructive transition-colors p-2" title="Eliminar Recordatorio">
+              <button type="button" onClick={handleDelete} aria-label="Eliminar recordatorio" className="text-muted-foreground hover:text-destructive transition-colors p-2 cursor-pointer" title="Eliminar recordatorio">
                <Trash2 className="w-4 h-4" />
              </button>
            </div>
@@ -172,7 +223,7 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
                onChange={(e) => setTitle(e.target.value)}
                onBlur={() => handleTextBlur('title', title)}
                className={cn(
-                 "text-2xl font-semibold border-0 px-0 rounded-none shadow-none focus-visible:ring-0 h-auto break-words disabled:opacity-100 disabled:cursor-text",
+                 DETAIL_TITLE_INPUT_CLASS,
                  reminder.is_completed && "line-through text-muted-foreground/60"
                )}
                placeholder="Título del recordatorio..."
@@ -182,57 +233,58 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
            {/* Attributes Grid */}
            <div className="flex flex-col gap-1 rounded-xl border bg-card overflow-hidden">
              
-             {/* Trigger Date Range */}             <div className="grid grid-cols-2 gap-px bg-border border-b">
+             {/* Trigger Date Range */}
+             <div className="grid grid-cols-2 gap-2 border-b p-3">
                
                {/* Start Date */}
-               <div className="flex flex-col bg-card p-3 hover:bg-muted/50 transition-colors">
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 mb-0.5">Fecha Inicio</span>
+               <div className="space-y-1">
+                  <span className={DETAIL_FIELD_LABEL_CLASS}>Fecha inicio</span>
                   <Input 
                      type="date"
                      disabled={reminder.is_completed}
                      value={startDate}
                      onChange={e => setStartDate(e.target.value)}
                      onBlur={() => saveDateRange(startDate, startTime, endDate, endTime)}
-                     className="h-8 border-0 shadow-none px-1 py-0 focus-visible:ring-0 text-sm font-medium w-full bg-transparent disabled:opacity-50 cursor-pointer"
+                     className={DETAIL_TIME_INPUT_CLASS}
                   />
                </div>
 
                {/* Start Time */}
-               <div className="flex flex-col bg-card p-3 hover:bg-muted/50 transition-colors">
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 mb-0.5">Hora Inicio</span>
+               <div className="space-y-1">
+                  <span className={DETAIL_FIELD_LABEL_CLASS}>Hora inicio</span>
                   <Input 
                      type="time"
                      disabled={reminder.is_completed}
                      value={startTime}
                      onChange={e => setStartTime(e.target.value)}
                      onBlur={() => saveDateRange(startDate, startTime, endDate, endTime)}
-                     className={cn("h-8 border-0 shadow-none px-1 py-0 focus-visible:ring-0 text-sm font-medium w-full bg-transparent disabled:opacity-50 cursor-pointer", !startTime && "text-muted-foreground")}
+                     className={cn(DETAIL_TIME_INPUT_CLASS, !startTime && "text-muted-foreground")}
                   />
                </div>
 
                {/* End Date */}
-               <div className="flex flex-col bg-card p-3 hover:bg-muted/50 transition-colors">
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 mb-0.5">Fecha Fin</span>
+               <div className="space-y-1">
+                  <span className={DETAIL_FIELD_LABEL_CLASS}>Fecha fin</span>
                   <Input 
                      type="date"
                      disabled={reminder.is_completed}
                      value={endDate}
                      onChange={e => setEndDate(e.target.value)}
                      onBlur={() => saveDateRange(startDate, startTime, endDate, endTime)}
-                     className={cn("h-8 border-0 shadow-none px-1 py-0 focus-visible:ring-0 text-sm font-medium w-full bg-transparent disabled:opacity-50 cursor-pointer", !endDate && "text-muted-foreground")}
+                     className={cn(DETAIL_TIME_INPUT_CLASS, !endDate && "text-muted-foreground")}
                   />
                </div>
 
                {/* End Time */}
-               <div className="flex flex-col bg-card p-3 hover:bg-muted/50 transition-colors">
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 mb-0.5">Hora Fin</span>
+               <div className="space-y-1">
+                  <span className={DETAIL_FIELD_LABEL_CLASS}>Hora fin</span>
                   <Input 
                      type="time"
                      disabled={reminder.is_completed}
                      value={endTime}
                      onChange={e => setEndTime(e.target.value)}
                      onBlur={() => saveDateRange(startDate, startTime, endDate, endTime)}
-                     className={cn("h-8 border-0 shadow-none px-1 py-0 focus-visible:ring-0 text-sm font-medium w-full bg-transparent disabled:opacity-50 cursor-pointer", !endTime && "text-muted-foreground")}
+                     className={cn(DETAIL_TIME_INPUT_CLASS, !endTime && "text-muted-foreground")}
                   />
                </div>
 
@@ -241,29 +293,19 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
              {/* Color */}
              <div className="flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors">
                <PaintBucket className="w-4 h-4 text-muted-foreground" />
-               <div className="flex-1">
-                 <Select 
-                   value={reminder.color || "#ffedd5"} 
-                   onValueChange={(v) => handleUpdate('color', v)}
+               <div className="flex-1 min-w-0">
+                 <Select
+                   value={reminder.color || DEFAULT_GENERIC_COLOR}
+                   onValueChange={(v) => handleUpdate('color', v ?? DEFAULT_GENERIC_COLOR)}
                    disabled={reminder.is_completed}
                  >
-                   <SelectTrigger className="h-auto py-0 px-1 border-0 shadow-none focus-visible:ring-0 bg-transparent text-sm font-medium w-full justify-start gap-2 hover:bg-transparent -ml-1 disabled:opacity-50">
+                   <SelectTrigger className={DETAIL_SELECT_TRIGGER_CLASS}>
                      <SelectValue placeholder="Color">
-                       {reminder.color === "#ffedd5" && <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#ffedd5]" /> Naranja</span>}
-                       {reminder.color === "#fef9c3" && <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#fef9c3]" /> Amarillo</span>}
-                       {reminder.color === "#dcfce7" && <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#dcfce7]" /> Verde</span>}
-                       {reminder.color === "#dbeafe" && <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#dbeafe]" /> Azul</span>}
-                       {reminder.color === "#f3e8ff" && <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#f3e8ff]" /> Púrpura</span>}
-                       {reminder.color === "#ffe4e6" && <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#ffe4e6]" /> Rosa</span>}
+                       <GenericColorLabel value={reminder.color || DEFAULT_GENERIC_COLOR} swatchClassName="h-3 w-3" />
                      </SelectValue>
                    </SelectTrigger>
                    <SelectContent>
-                     <SelectItem value="#ffedd5"><span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#ffedd5] border border-[#f97316]" /> Naranja</span></SelectItem>
-                     <SelectItem value="#fef9c3"><span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#fef9c3] border border-[#eab308]" /> Amarillo</span></SelectItem>
-                     <SelectItem value="#dcfce7"><span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#dcfce7] border border-[#22c55e]" /> Verde</span></SelectItem>
-                     <SelectItem value="#dbeafe"><span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#dbeafe] border border-[#3b82f6]" /> Azul</span></SelectItem>
-                     <SelectItem value="#f3e8ff"><span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#f3e8ff] border border-[#a855f7]" /> Púrpura</span></SelectItem>
-                     <SelectItem value="#ffe4e6"><span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#ffe4e6] border border-[#f43f5e]" /> Rosa</span></SelectItem>
+                     <GenericColorSelectItems swatchClassName="h-3 w-3" />
                    </SelectContent>
                  </Select>
                </div>
@@ -272,7 +314,7 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
 
            {/* Description Editor */}
            <div className="space-y-2 pt-2">
-             <h3 className="text-sm font-medium text-muted-foreground px-1 mb-1">Notas Adicionales</h3>
+             <h3 className="text-sm font-medium text-muted-foreground px-1 mb-1">Notas adicionales</h3>
              <Textarea 
                value={desc}
                disabled={reminder.is_completed}
@@ -282,7 +324,7 @@ export function ReminderDetailsDrawer({ reminder, open, onOpenChange }: { remind
                placeholder="Añadir una nota detallada..."
              />
            </div>
-           
+
          </div>
       </SheetContent>
     </Sheet>

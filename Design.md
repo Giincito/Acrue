@@ -62,9 +62,9 @@ Punto orbital radio: 2.5u opacidad: 100%   posición: ~45° sobre anillo 2 (cx:2
 ### Wordmark
 
 ```
-Typeface:     Geist ExtraLight (weight 200)
+Typeface:     Geist Medium (weight 500)
 Size:         28px junto al isotipo
-Tracking:     -0.035em
+Tracking:     0
 Color:        currentColor
 Case:         siempre lowercase — "acrue", nunca "Acrue" ni "ACRUE"
 ```
@@ -224,7 +224,7 @@ Open source, de Vercel, diseñada para interfaces de software. Geométrica con p
 - Nunca usar weight 600 ni 700 — rompe el registro visual.
 - Los números en UI van con `font-variant-numeric: tabular-nums`.
 - Labels de sección: uppercase, tracking 0.10em, weight 500 — única excepción al lowercase.
-- El wordmark siempre weight 200, tracking -0.035em, lowercase.
+- El wordmark siempre weight 500, tracking normal, lowercase.
 
 ---
 
@@ -263,6 +263,26 @@ Sidebar:              220px fija, izquierda
 Content area:         flex-1, máximo 720px de ancho útil, centrado
 Padding horizontal:   32px
 ```
+
+### Layout estándar de módulo
+
+Todos los módulos de la app autenticada usan `src/components/layout/module-shell.tsx` como contenedor de página. Esto evita que cada módulo defina su propio padding, ancho y altura mínima.
+
+Contrato:
+- Wrapper externo: `flex-1 w-full h-full bg-background lg:p-4`
+- Contenido interno: centrado, `space-y-6`, `pb-20 lg:pb-8`, altura mínima `calc(100vh - 80px)`
+- Padding interno: `px-4 lg:px-0 pt-4 lg:pt-0`
+- Ancho `default`: `max-w-4xl`
+- Ancho `wide`: `max-w-5xl` solo para calendario, tableros densos o vistas comparativas
+- Ancho `narrow`: `max-w-2xl` para configuración y formularios
+
+Header de módulo:
+- Primer bloque del contenido, con `pt-8`
+- Título: `text-2xl font-medium text-foreground`
+- Copy auxiliar opcional: `mt-1 text-sm text-muted-foreground`
+- Acción primaria alineada a la derecha, con `cursor-pointer`
+
+Foco/Pomodoro es la excepción: sigue siendo pantalla dedicada completa y no usa `ModuleShell`.
 
 ### Grid de contenido
 
@@ -356,6 +376,13 @@ Label:         #2282fa, weight 500
 ```
 Fondo:         Linen (light) / Slate 40% (dark)
 ```
+
+**Submódulos:**
+- Los submódulos viven en el panel lateral, como hijos del módulo principal.
+- No se usan tabs superiores dentro del contenido para cambiar de submódulo.
+- Las vistas internas se resuelven por ruta o query string (`?tab=...`, `?view=...`) desde el sidebar.
+- Las tabs dentro del contenido quedan reservadas solo para filtros locales o controles secundarios que no cambian el submódulo activo.
+- En desktop, el módulo activo autoexpande sus submódulos en el sidebar.
 
 > El accent `#2282fa` aparece aquí como indicador de navegación activa — es el uso de marca más visible en la app. Sutil pero inmediatamente reconocible.
 

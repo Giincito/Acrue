@@ -2,6 +2,7 @@ import { router, protectedProcedure } from '../trpc';
 import { CreateAssignmentSchema, UpdateAssignmentSchema } from '../schema/assignment';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { addXP } from '@/lib/xp';
 
 export const assignmentRouter = router({
   listBySubject: protectedProcedure
@@ -88,6 +89,34 @@ export const assignmentRouter = router({
     .input(UpdateAssignmentSchema)
     .mutation(async ({ ctx, input }) => {
       const { id, ...updates } = input;
+
+      const { data: previousAssignment, error: previousError } = await ctx.supabase
+        .from('assignments')
+        .select('id, subject_id, title, completed')
+        .eq('id', id)
+        .single();
+
+      if (previousError || !previousAssignment) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Assignment not found',
+        });
+      }
+
+      const { data: subject, error: subjectError } = await ctx.supabase
+        .from('subjects')
+        .select('id')
+        .eq('id', previousAssignment.subject_id)
+        .eq('user_id', ctx.user.id)
+        .single();
+
+      if (subjectError || !subject) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Subject not found or does not belong to user',
+        });
+      }
+      const wasCompleted = previousAssignment.completed === true;
       
       const { data, error } = await ctx.supabase
         .from('assignments')
@@ -102,6 +131,11 @@ export const assignmentRouter = router({
           message: error.message,
         });
       }
+
+      if (updates.completed === true && !wasCompleted) {
+        await addXP(ctx.supabase, ctx.user.id, 'assignment', id, 25, `Entrega completada: ${data.title}`)
+      }
+
       return data;
     }),
 

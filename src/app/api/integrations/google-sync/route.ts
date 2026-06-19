@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { fetchGoogleCalendarEvents } from '@/lib/google-calendar'
+import { logger } from '@/lib/server/logger'
+import { createServiceClient } from '@/utils/supabase/service'
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -21,8 +23,7 @@ export async function GET() {
             )
           } catch {
             // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // This can be ignored if you have middleware refreshing user sessions.
           }
         },
       },
@@ -36,44 +37,35 @@ export async function GET() {
   }
 
   try {
-    // 1. Fetch events from the internal Acrue Google Calendar
     const googleEvents = await fetchGoogleCalendarEvents(user.id)
-    
-    // We only process if there are events, otherwise just send a 200 OK
-    if (googleEvents && googleEvents.length > 0) {
-      
-      const adminSupabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          cookies: { getAll() { return [] }, setAll() {} }
-        }
-      )
-      
+
+    if (googleEvents.length > 0) {
+      const adminSupabase = createServiceClient()
+
       for (const event of googleEvents) {
-        // We ensure we have an email or generic creator
-        const userEmail = event.creator?.email || 'unknown@google.com'
-        
-        // Upsert into our generic calendar_events
+        const startAt = event.start?.dateTime || (event.start?.date ? new Date(event.start.date).toISOString() : null)
+        if (!event.id || !startAt) continue
+
+        const endAt = event.end?.dateTime || (event.end?.date ? new Date(event.end.date).toISOString() : null)
+
         await adminSupabase.from('calendar_events').upsert({
-          gcal_id: event.id,
-          user_id: user.id, // Bind it strictly to the requesting user
-          user_email: userEmail,
-          title: event.summary || 'Sin Título',
-          start_time: event.start?.dateTime || event.start?.date || new Date().toISOString(),
-          end_time: event.end?.dateTime || event.end?.date || new Date().toISOString(),
-          status: event.status || 'confirmed',
-          link: event.htmlLink || null
+          gcal_event_id: event.id,
+          user_id: user.id,
+          title: event.summary || 'Sin título',
+          start_at: startAt,
+          end_at: endAt,
+          meet_url: event.hangoutLink || null,
+          source: 'google',
+          deleted_at: null,
         }, {
-          onConflict: 'gcal_id'
+          onConflict: 'user_id,gcal_event_id',
         })
       }
     }
-    
-    return NextResponse.json({ success: true, count: googleEvents.length || 0 })
-    
+
+    return NextResponse.json({ success: true, count: googleEvents.length })
   } catch (error) {
-    console.error('Manual Google Sync Error:', error)
+    logger.error('Manual Google Sync Error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

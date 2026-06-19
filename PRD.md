@@ -1111,8 +1111,8 @@ Esta limpieza es **automática** — se ejecuta via webhook de MCP o como parte 
 | `GOOGLE_CLIENT_ID` | OAuth2 client ID | Solo servidor |
 | `GOOGLE_CLIENT_SECRET` | OAuth2 client secret | Solo servidor |
 | `TELEGRAM_BOT_TOKEN` | Token del bot | Solo servidor |
-| `UPSTASH_REDIS_URL` | URL Upstash Redis | Solo servidor |
-| `UPSTASH_REDIS_TOKEN` | Token Upstash Redis | Solo servidor |
+| `UPSTASH_REDIS_REST_URL` | URL REST de Upstash Redis | Solo servidor |
+| `UPSTASH_REDIS_REST_TOKEN` | Token REST de Upstash Redis | Solo servidor |
 | `SENTRY_DSN` | DSN Sentry | Servidor + cliente |
 | `MOODLE_ENCRYPTION_KEY` | Clave encriptación credenciales | Solo servidor |
 | `CRON_SECRET` | Token autenticación cron jobs | Solo servidor |

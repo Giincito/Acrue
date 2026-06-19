@@ -6,13 +6,12 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: "acrue",
-  project: "acrue",
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  reactComponentAnnotation: { enabled: true },
-  tunnelRoute: "/monitoring",
   sourcemaps: { disable: true },
-  disableLogger: true,
+  telemetry: false,
+  webpack: {
+    reactComponentAnnotation: { enabled: true },
+    treeshake: { removeDebugLogging: true },
+  },
 });
-

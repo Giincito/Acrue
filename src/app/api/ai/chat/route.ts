@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { sendChatMessage } from '@/lib/gemini/chat'
+import { executeAiAction } from '@/lib/gemini/actions'
 import type { ChatMessage } from '@/types/ai'
+import { logger } from '@/lib/server/logger'
+
+function isExecutableAiAction(action: Record<string, unknown>): action is { type: string; payload: unknown } {
+  return typeof action.type === 'string' && 'payload' in action
+}
 
 export async function POST(req: Request) {
   try {
@@ -30,67 +36,26 @@ export async function POST(req: Request) {
     )
 
     let actionId: string | undefined
+    let undoId: string | undefined
+    let actionMessage: string | undefined
+    let actionSuccess: boolean | undefined
 
     if (action) {
-      try {
-        switch (action.type) {
-          case 'create_task': {
-            const payload = action.payload as any
-            const dueRaw = payload.due_at || payload.due_date;
-            const parsedDueAt = dueRaw 
-              ? (dueRaw.length === 10 ? dueRaw + 'T12:00:00-03:00' : dueRaw.includes('T00:00:00') ? dueRaw.split('T')[0] + 'T12:00:00-03:00' : dueRaw) 
-              : null;
-            
-            const priorityMap: Record<string, number> = {
-              high: 1, alta: 1, urgente: 1, '1': 1,
-              medium: 2, media: 2, normal: 2, '2': 2,
-              low: 3, baja: 3, bajo: 3, '3': 3,
-            }
-            const priority = typeof payload.priority === 'number'
-              ? payload.priority
-              : priorityMap[String(payload.priority).toLowerCase()] ?? 2
-
-            const { data, error: insertError } = await supabase.from('tasks').insert({
-              user_id: user.id,
-              title: payload.title || payload.description || 'Nueva tarea',
-              due_at: parsedDueAt,
-              priority: priority,
-              status: 'inbox',
-              source: 'chatbot'
-            }).select('id').single()
-            
-            if (insertError) console.error('[api/ai/chat] Error procesando create_task:', insertError)
-            if (data) actionId = data.id
-            break
-          }
-          case 'create_reminder': {
-            const payload = action.payload as any
-            const triggerRaw = payload.trigger_at || payload.due_date || payload.time;
-            const parsedTriggerAt = triggerRaw
-              ? (triggerRaw.length === 10 ? triggerRaw + 'T12:00:00-03:00' : triggerRaw.includes('T00:00:00') ? triggerRaw.split('T')[0] + 'T12:00:00-03:00' : triggerRaw)
-              : new Date().toISOString();
-            const { data, error: insertError } = await supabase.from('reminders').insert({
-              user_id: user.id,
-              title: payload.title || payload.description || 'Nuevo recordatorio',
-              trigger_at: parsedTriggerAt,
-              is_completed: false,
-              source: 'chatbot'
-            }).select('id').single()
-            
-            if (insertError) console.error('[api/ai/chat] Error procesando create_reminder:', insertError)
-            if (data) actionId = data.id
-            break
-          }
-        }
-      } catch (e) {
-        console.error('[api/ai/chat] Excepcion ejecutando accion:', e)
+      if (isExecutableAiAction(action)) {
+        const result = await executeAiAction(user.id, action, supabase)
+        actionSuccess = result.success
+        actionMessage = result.message
+        actionId = result.recordId
+        undoId = result.undoId
+      } else {
+        actionSuccess = false
+        actionMessage = 'La acción detectada no tiene un formato válido.'
       }
     }
 
-    // Devolver solo reply para que el JSON nunca sea visible, junto con actionId
-    return NextResponse.json({ reply, actionId })
-  } catch (err: any) {
-    console.error('[api/ai/chat] Unexpected error:', err)
+    return NextResponse.json({ reply, actionId, undoId, actionMessage, actionSuccess })
+  } catch (err: unknown) {
+    logger.error('[api/ai/chat] Unexpected error:', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

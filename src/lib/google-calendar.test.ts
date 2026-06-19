@@ -1,11 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { pushGoogleCalendarEvent } from './google-calendar';
 
-vi.mock('@supabase/supabase-js', () => {
-  return {
-    createClient: vi.fn()
-  };
-});
+vi.mock('@/utils/supabase/service', () => ({
+  createServiceClient: vi.fn()
+}));
 
 const { mockInsert, mockUpdate, mockDelete, mockSetCredentials, mockCalendarList, mockCalendarInsert } = vi.hoisted(() => ({
   mockInsert: vi.fn(),
@@ -43,13 +41,13 @@ describe('Google Calendar Sync Push', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-  it('returns null if there is no google_refresh_token', async () => {
-    const { createClient } = await import('@supabase/supabase-js');
-    (createClient as any).mockReturnValue({
+  it('returns null if there is no Google integration token', async () => {
+    const { createServiceClient } = await import('@/utils/supabase/service');
+    (createServiceClient as Mock).mockReturnValue({
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { settings: {} }, error: null })
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
     });
 
     const result = await pushGoogleCalendarEvent('test-user-id', {
@@ -62,12 +60,12 @@ describe('Google Calendar Sync Push', () => {
   });
 
   it('pushes the event to Google Calendar and returns the event id', async () => {
-    const { createClient } = await import('@supabase/supabase-js');
-    (createClient as any).mockReturnValue({
+    const { createServiceClient } = await import('@/utils/supabase/service');
+    (createServiceClient as Mock).mockReturnValue({
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { settings: { google_refresh_token: 'valid-token' } }, error: null })
+      maybeSingle: vi.fn().mockResolvedValue({ data: { refresh_token: 'valid-token' }, error: null })
     });
 
     mockInsert.mockResolvedValue({ data: { id: 'mock-gcal-id' } });
@@ -87,12 +85,12 @@ describe('Google Calendar Sync Push', () => {
 
   describe('getOrCreateAcrueCalendar', () => {
     it('creates a new Acrue calendar if one does not exist', async () => {
-      const { createClient } = await import('@supabase/supabase-js');
-      (createClient as any).mockReturnValue({
+      const { createServiceClient } = await import('@/utils/supabase/service');
+      (createServiceClient as Mock).mockReturnValue({
         from: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { settings: { google_refresh_token: 'valid-token' } }, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: { refresh_token: 'valid-token' }, error: null })
       });
 
       mockCalendarList.mockResolvedValue({ data: { items: [{ id: 'primary', summary: 'My Email' }] } });

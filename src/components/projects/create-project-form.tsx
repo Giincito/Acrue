@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { trpc } from "@/lib/trpc"
 
@@ -22,21 +22,19 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { CreateProjectSchema, type CreateProjectInput } from "@/server/schema/project"
 import { IconPicker } from "@/components/ui/icon-picker"
-import { Plus, CalendarIcon, Palette } from "lucide-react"
+import { Plus, CalendarIcon } from "lucide-react"
 
 interface CreateProjectFormProps {
   onSuccess?: () => void
 }
 
 const PROJECT_PALETTE = [
-  "#2282fa", // Blue (Accent)
-  "#ef4444", // Red
-  "#f97316", // Orange
-  "#eab308", // Yellow
-  "#22c55e", // Green
-  "#a855f7", // Purple
-  "#ec4899", // Pink
-  "#64748b", // Slate
+  "#2282fa",
+  "#0C0C0B",
+  "#3C3C3A",
+  "#888884",
+  "#C8C8C2",
+  "#EAEAE6",
 ]
 
 export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
@@ -48,7 +46,7 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
   })
   
   const form = useForm<CreateProjectInput>({
-    resolver: zodResolver(CreateProjectSchema) as any,
+    resolver: zodResolver(CreateProjectSchema) as Resolver<CreateProjectInput>,
     defaultValues: {
       name: "",
       description: "",
@@ -64,14 +62,13 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
       form.reset()
       onSuccess?.()
       toast.success("Proyecto creado con éxito")
-    } catch (e: any) {
-      console.error("Failed to create project", e)
-      toast.error(e.message || "Error al crear proyecto")
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Error al crear proyecto"
+      toast.error(message)
     }
   }
 
-  const onError = (errors: any) => {
-    console.error("Form validation errors:", errors)
+  const onError = () => {
     toast.error("Revisa los campos del formulario")
   }
 
@@ -124,13 +121,13 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
               <FormItem className="flex-none">
                 <FormControl>
                   <Popover>
-                    {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                    {/* @ts-expect-error - PopoverTrigger asChild typing conflict with base-ui */}
-                    <PopoverTrigger asChild>
-                      <button type="button" className="flex items-center justify-center w-10 h-10 rounded-md border cursor-pointer hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors relative" style={{ backgroundColor: field.value ? `${field.value}15` : 'transparent' }}>
+                    <PopoverTrigger
+                      render={
+                      <button type="button" aria-label="Elegir color del proyecto" className="flex items-center justify-center w-10 h-10 rounded-md border cursor-pointer hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors relative" style={{ backgroundColor: field.value ? `${field.value}15` : 'transparent' }}>
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: field.value || PROJECT_PALETTE[0] }} />
                       </button>
-                    </PopoverTrigger>
+                      }
+                    />
                     <PopoverContent className="w-[180px] p-3" align="center">
                       <div className="grid grid-cols-4 gap-2">
                         {PROJECT_PALETTE.map((c) => (
@@ -142,6 +139,7 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
                               field.value === c && "ring-2 ring-offset-2 ring-accent"
                             )}
                             style={{ backgroundColor: c }}
+                            aria-label={`Seleccionar color ${c}`}
                             onClick={() => field.onChange(c)}
                           />
                         ))}
@@ -161,9 +159,10 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <Popover>
-                {/* @ts-expect-error - PopoverTrigger asChild typing conflict with base-ui */}
-                <PopoverTrigger asChild>
+                <PopoverTrigger
+                  render={
                   <Button
+                    type="button"
                     variant={"outline"}
                     className={cn(
                       "w-full pl-3 text-left font-normal h-10",
@@ -177,7 +176,8 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
                     )}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
-                </PopoverTrigger>
+                  }
+                />
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"

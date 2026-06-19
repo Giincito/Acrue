@@ -1,64 +1,76 @@
-import { createClient } from '@supabase/supabase-js'
-import { bot } from '@/lib/telegram'
+import { NextResponse } from 'next/server'
+import {
+  buildDailyBriefing,
+  formatDailyBriefingTelegram,
+} from '@/lib/gemini/briefing'
+import { assertCronRequest } from '@/lib/server/cron-auth'
+import { createDeliveryCronResponse } from '@/lib/server/delivery-cron-response'
+import { logger } from '@/lib/server/logger'
+import { sendTelegramMessage } from '@/lib/telegram'
+import { createServiceClient } from '@/utils/supabase/service'
 
-export async function POST(req: Request) {
+type BriefingUser = {
+  id: string
+  telegram_chat_id: string | number | null
+}
+
+async function sendDailyBriefings(req: Request) {
+  const authError = assertCronRequest(req)
+  if (authError) return authError
+
   try {
-    const authHeader = req.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    if (!bot) {
-      return new Response('Bot not configured', { status: 501 })
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    // Example logic: Send Morning Briefing (tasks for today)
-    const { data: users, error: usersErr } = await supabase
+    const supabase = createServiceClient()
+    const { data: users, error } = await supabase
       .from('users')
       .select('id, telegram_chat_id')
       .not('telegram_chat_id', 'is', null)
 
-    if (usersErr) throw usersErr
+    if (error) throw error
 
     let sent = 0
+    let failed = 0
 
-    for (const user of users) {
-      // Find today's tasks
-      const todayStart = new Date()
-      todayStart.setHours(0,0,0,0)
-      const todayEnd = new Date()
-      todayEnd.setHours(23,59,59,999)
+    for (const user of (users ?? []) as BriefingUser[]) {
+      if (!user.telegram_chat_id) continue
 
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'today')
-        .is('deleted_at', null)
-        .is('completed_at', null) // only pending
+      try {
+        const briefing = await buildDailyBriefing({
+          userId: user.id,
+          supabase,
+          createGmailTasks: true,
+        })
+        const delivered = await sendTelegramMessage(
+          user.telegram_chat_id,
+          formatDailyBriefingTelegram(briefing)
+        )
 
-      if (tasks && tasks.length > 0) {
-        const msg = `🌅 *Resumen de tu Día*\nTienes ${tasks.length} tareas pendientes hoy:\n\n` +
-          tasks.map(t => `• ${t.title}`).join('\n')
-
-        try {
-          await bot.telegram.sendMessage(user.telegram_chat_id!, msg, { parse_mode: 'Markdown' })
+        if (delivered) {
           sent++
-        } catch (e) {
-          console.error("Failed to send message to user", user.id, e)
+        } else {
+          failed++
         }
+      } catch (userError) {
+        failed++
+        logger.error('[telegram-briefing] User briefing failed:', userError, { userId: user.id })
       }
     }
 
-    return new Response(JSON.stringify({ success: true, sent }), {
-      headers: { 'Content-Type': 'application/json' },
+    return createDeliveryCronResponse({
+      sent,
+      failed,
+      allFailedError: 'No se pudo enviar ningun briefing diario.',
     })
-  } catch (error: any) {
-    return new Response(error.message, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error interno'
+    logger.error('[telegram-briefing] Unexpected error:', error)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
+}
+
+export async function GET(req: Request) {
+  return sendDailyBriefings(req)
+}
+
+export async function POST(req: Request) {
+  return sendDailyBriefings(req)
 }

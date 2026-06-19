@@ -2,6 +2,9 @@ import { router, protectedProcedure } from '../trpc';
 import { CreateTaskSchema, UpdateTaskSchema } from '../schema/task';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { startOfDay, endOfDay } from 'date-fns';
+import { logger } from '@/lib/server/logger'
+import { addXP } from '@/lib/xp'
 
 export const taskRouter = router({
   // GET /api/tasks essentially
@@ -25,7 +28,6 @@ export const taskRouter = router({
       }
 
       // Use timezone-safe client dates if provided, otherwise fallback to server local time via date-fns
-      const { startOfDay, endOfDay } = require('date-fns');
       const todayStartIso = input?.clientStartDate ?? startOfDay(new Date()).toISOString();
       const todayEndIso = input?.clientEndDate ?? endOfDay(new Date()).toISOString();
 
@@ -118,7 +120,7 @@ export const taskRouter = router({
           }
 
         } catch (err) {
-          console.error('Failed to push to GCal:', err);
+          logger.error('Failed to push to GCal:', err);
         }
       }
 
@@ -130,6 +132,21 @@ export const taskRouter = router({
     .input(UpdateTaskSchema)
     .mutation(async ({ ctx, input }) => {
       const { id, description, ...updates } = input;
+
+      const { data: previousTask, error: previousError } = await ctx.supabase
+        .from('tasks')
+        .select('id, title, status')
+        .eq('id', id)
+        .eq('user_id', ctx.user.id)
+        .single();
+
+      if (previousError || !previousTask) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Task not found',
+        });
+      }
+      const previousStatus = previousTask.status;
       
       const { data, error } = await ctx.supabase
         .from('tasks')
@@ -160,7 +177,7 @@ export const taskRouter = router({
           };
           await updateGoogleCalendarEvent(ctx.user.id, data.gcal_event_id!, payload);
         } catch (err) {
-          console.error('Failed to update GCal:', err);
+          logger.error('Failed to update GCal:', err);
         }
       } else if (!data.gcal_event_id && (updates.due_at || updates.start_time)) {
         try {
@@ -178,8 +195,12 @@ export const taskRouter = router({
             await ctx.supabase.from('tasks').update({ gcal_event_id: gcalEventId }).eq('id', data.id);
           }
         } catch (err) {
-          console.error('Failed to push to GCal on set due:', err);
+          logger.error('Failed to push to GCal on set due:', err);
         }
+      }
+
+      if (updates.status === 'completed' && previousStatus !== 'completed') {
+        await addXP(ctx.supabase, ctx.user.id, 'task', id, 10, `Tarea completada: ${data.title}`)
       }
 
       return data;
@@ -209,7 +230,7 @@ export const taskRouter = router({
           const { deleteGoogleCalendarEvent } = await import('@/lib/google-calendar');
           await deleteGoogleCalendarEvent(ctx.user.id, data.gcal_event_id!);
         } catch (err) {
-          console.error('Failed to delete GCal:', err);
+          logger.error('Failed to delete GCal:', err);
         }
       }
 
@@ -279,7 +300,7 @@ export const taskRouter = router({
           const { deleteGoogleCalendarEvent } = await import('@/lib/google-calendar');
           await deleteGoogleCalendarEvent(ctx.user.id, data.gcal_event_id!);
         } catch (err) {
-          console.error('Failed to permanent delete GCal:', err);
+          logger.error('Failed to permanent delete GCal:', err);
         }
       }
 

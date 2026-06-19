@@ -1,21 +1,23 @@
-import { createClient } from '@supabase/supabase-js'
-import { RRule } from 'rrule'
+import { assertCronRequest } from '@/lib/server/cron-auth'
+import { logger } from '@/lib/server/logger'
+import { buildRecurringTaskInstance, getRecurrenceDateKey } from '@/lib/utils/recurrence'
+import { createServiceClient } from '@/utils/supabase/service'
+
+export async function GET(req: Request) {
+  return generateRecurringTasks(req)
+}
 
 export async function POST(req: Request) {
+  return generateRecurringTasks(req)
+}
+
+async function generateRecurringTasks(req: Request) {
   try {
-    const authHeader = req.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return new Response('Unauthorized', { status: 401 })
-    }
+    const authError = assertCronRequest(req)
+    if (authError) return authError
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY! // We need this in prod for bypass RLS
+    const supabase = createServiceClient()
 
-    // For local dev, we might fallback to Anon if service is not present (although RLS blocks it)
-    // Best practice is to set SUPABASE_SERVICE_ROLE_KEY in `.env.local`
-    const supabase = createClient(supabaseUrl, supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-
-    // Fetch all active recurring tasks
     const { data: recurringTasks, error } = await supabase
       .from('tasks')
       .select('*')
@@ -24,60 +26,58 @@ export async function POST(req: Request) {
 
     if (error) throw error
 
+    const targetDate = new Date()
+    const occurrenceDate = getRecurrenceDateKey(targetDate)
+    const { data: existingInstances, error: existingError } = await supabase
+      .from('tasks')
+      .select('metadata')
+      .eq('source', 'recurrence')
+      .eq('metadata->>recurrence_occurrence_date', occurrenceDate)
+      .is('deleted_at', null)
+
+    if (existingError) throw existingError
+
+    const existingKeys = new Set(
+      (existingInstances ?? []).flatMap((task) => {
+        const metadata = toPlainMetadata(task.metadata)
+        const sourceTaskId = metadata.recurrence_source_task_id
+        const occurrence = metadata.recurrence_occurrence_date
+
+        return typeof sourceTaskId === 'string' && typeof occurrence === 'string'
+          ? [`${sourceTaskId}:${occurrence}`]
+          : []
+      })
+    )
+
     let insertedCount = 0
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    for (const task of recurringTasks ?? []) {
+      const instance = buildRecurringTaskInstance(task, targetDate, existingKeys)
+      if (!instance) continue
 
-    for (const task of recurringTasks) {
-      if (!task.recurrence_rule) continue
+      const { error: insertError } = await supabase.from('tasks').insert(instance)
 
-      try {
-        const rule = RRule.fromString(task.recurrence_rule)
-        
-        // We look for occurrences today. In a real system, we'd store a `last_generated_date`
-        // or shift the `due_at` date of the original task.
-        // For standard cron logic: we check if today matches the recurrence rule of the original due_at.
-        
-        const originalDue = task.due_at ? new Date(task.due_at) : new Date(task.created_at)
-        const dtstart = new Date(Date.UTC(originalDue.getFullYear(), originalDue.getMonth(), originalDue.getDate()))
-        const ruleWithStart = new RRule({
-            ...rule.options,
-            dtstart,
-        })
-
-        const occurrences = ruleWithStart.between(today, new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1))
-        
-        if (occurrences.length > 0) {
-          // It repeats today, and it hasn't been generated yet (simplified logic)
-          // We would create a new instance IF it's not the original day itself.
-          
-          if (today.getTime() !== dtstart.getTime()) {
-            await supabase.from('tasks').insert({
-              user_id: task.user_id,
-              title: task.title,
-              context_tag: task.context_tag,
-              status: 'today', // Pop directly into today
-              priority: task.priority,
-              due_at: today.toISOString(),
-              project_id: task.project_id,
-              is_recurring: false, // The clone isn't recurring, just an instance. (Alternatively, the master moves date).
-              recurrence_rule: null
-            })
-            insertedCount++
-          }
-        }
-
-      } catch (err) {
-        console.error(`Failed parsing rule for task ${task.id}`, err)
+      if (insertError) {
+        logger.error(`Failed generating recurring task ${task.id}`, insertError)
+        continue
       }
+
+      insertedCount++
+      existingKeys.add(`${task.id}:${occurrenceDate}`)
     }
 
     return new Response(JSON.stringify({ success: true, count: insertedCount }), {
       headers: { 'Content-Type': 'application/json' },
     })
 
-  } catch (error: any) {
-    return new Response(error.message, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error interno'
+    return new Response(message, { status: 500 })
   }
+}
+
+function toPlainMetadata(metadata: unknown): Record<string, unknown> {
+  return metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+    ? { ...metadata }
+    : {}
 }

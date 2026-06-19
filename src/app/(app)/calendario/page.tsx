@@ -2,16 +2,21 @@
 
 import * as React from "react"
 import { CalendarView } from "@/components/calendar/calendar-view"
+import { ModuleShell } from "@/components/layout/module-shell"
 
 export default function CalendarPage() {
   return (
-    <div className="flex-1 w-full h-full bg-background lg:p-4">
-      <div className="max-w-5xl mx-auto space-y-6 pb-20 lg:pb-8 relative min-h-[calc(100vh-80px)] px-4 lg:px-0 pt-4 lg:pt-0">
+    <ModuleShell width="wide">
         {/* Content */}
         <div className="mt-4">
-          <CalendarView />
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center p-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          }>
+            <CalendarView />
+          </React.Suspense>
         </div>
-      </div>
-    </div>
+    </ModuleShell>
   )
 }

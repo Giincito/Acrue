@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CreateTaskInput, UpdateTaskInput, TaskStatus } from '@/server/schema/task';
+import { TaskStatus } from '@/server/schema/task';
 
 // Since we use tRPC for the actual network requests, the Zustand store
 // is mainly for optimistic UI updates and local caching of the active view.

@@ -1,11 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { trpc } from "@/lib/trpc"
 import { useTaskStore } from "@/store/useTaskStore"
+import { toast } from "sonner"
+import {
+  createIndexedDbOfflineActionStore,
+  enqueueOfflineAction,
+  OFFLINE_ACTION_QUEUED_EVENT,
+} from "@/lib/pwa/offline-actions"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,12 +29,21 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale/es"
 import { cn } from "@/lib/utils"
 import { IconPicker } from "@/components/ui/icon-picker"
-import { PaintBucket, CalendarIcon, Plus } from "lucide-react"
+import { CalendarIcon, Plus } from "lucide-react"
 
 const priorityMap: Record<string, string> = { "1": "Alta (1)", "2": "Media (2)", "3": "Baja (3)" }
 const contextMap: Record<string, string> = { "ninguno": "Sin contexto", "@hogar": "@hogar", "@universidad": "@universidad", "@personal": "@personal", "@compras": "@compras", "@trabajo": "@trabajo" }
 const uniMap: Record<string, string> = { "ninguno": "Sin especificar", "examen": "Examen", "tarea": "Tarea", "estudio": "Estudio", "repaso": "Repaso", "lectura": "Lectura", "compra": "Compra", "tramite": "Trámite" }
 const recMap: Record<string, string> = { "no": "No repite", "daily": "Diario", "weekly": "Semanal", "monthly": "Mensual" }
+
+const CREATE_TASK_TITLE_ROW_CLASS = "grid grid-cols-[44px_minmax(0,1fr)] items-center gap-2"
+const CREATE_TASK_TITLE_INPUT_CLASS =
+  "h-11 min-h-11 rounded-lg border-0 bg-muted/35 px-3 py-2 text-base font-medium shadow-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40"
+const CREATE_TASK_CHIP_GRID_CLASS = "grid grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2"
+const CREATE_TASK_CHIP_TRIGGER_CLASS =
+  "h-11 min-h-11 w-full justify-between rounded-lg border-border/70 bg-card px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/40 cursor-pointer"
+const CREATE_TASK_CHIP_BUTTON_CLASS =
+  "h-11 min-h-11 w-full justify-start rounded-lg border-border/70 bg-card px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/40 cursor-pointer"
 
 interface CreateTaskFormProps {
   defaultStatus?: TaskStatus
@@ -48,7 +62,7 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
   const { data: projects, isLoading: projectsLoading } = trpc.projects.list.useQuery()
   
   const form = useForm<CreateTaskInput>({
-    resolver: zodResolver(CreateTaskSchema) as any,
+    resolver: zodResolver(CreateTaskSchema) as Resolver<CreateTaskInput>,
     defaultValues: {
       title: "",
       context_tag: null,
@@ -65,43 +79,71 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
       university_type: null
     },
   })
+  const contextTag = useWatch({ control: form.control, name: "context_tag" })
+  const recurrenceRule = useWatch({ control: form.control, name: "recurrence_rule" })
+
+  const addOptimisticTask = (values: CreateTaskInput) => {
+    const tempId = crypto.randomUUID()
+    addTask({
+      ...values,
+      id: tempId,
+      user_id: "temp_user",
+      completed_at: null,
+      created_at: new Date().toISOString(),
+      context_tag: values.context_tag || null,
+      due_at: values.due_at || null,
+      start_time: values.start_time || null,
+      end_time: values.end_time || null,
+      is_all_day: values.is_all_day || false,
+      project_id: values.project_id || null,
+      recurrence_rule: values.recurrence_rule || null,
+      color: values.color || null,
+      university_type: values.university_type || null
+    })
+  }
+
+  const queueOfflineTask = async (values: CreateTaskInput) => {
+    await enqueueOfflineAction(
+      createIndexedDbOfflineActionStore(),
+      "tasks.create",
+      values as Record<string, unknown>
+    )
+    addOptimisticTask(values)
+    form.reset()
+    onSuccess?.()
+    window.dispatchEvent(new Event(OFFLINE_ACTION_QUEUED_EVENT))
+    toast.info("Tarea guardada offline", {
+      description: "Se sincroniza cuando vuelva la conexión.",
+    })
+  }
 
   const onSubmit = async (values: CreateTaskInput) => {
+    if (!navigator.onLine) {
+      await queueOfflineTask(values)
+      return
+    }
+
     try {
-      // Optimistically add task locally. Notice we don't have the final ID 
-      // but we use a temporary one for immediate render.
-      const tempId = crypto.randomUUID()
-      addTask({
-        ...values,
-        id: tempId,
-        user_id: "temp_user",
-        completed_at: null,
-        created_at: new Date().toISOString(),
-        context_tag: values.context_tag || null,
-        due_at: values.due_at || null,
-        start_time: values.start_time || null,
-        end_time: values.end_time || null,
-        is_all_day: values.is_all_day || false,
-        project_id: values.project_id || null,
-        recurrence_rule: values.recurrence_rule || null,
-        color: values.color || null,
-        university_type: values.university_type || null
-      })
-      
+      addOptimisticTask(values)
       form.reset()
       onSuccess?.()
-      
-      // Submit to backend
       await createMutation.mutateAsync(values)
-    } catch (e) {
-      console.error("Failed to create task", e)
+    } catch {
+      if (!navigator.onLine) {
+        await queueOfflineTask(values)
+        return
+      }
+
+      toast.error("No se pudo crear la tarea", {
+        description: "Revisa la conexión e intenta de nuevo.",
+      })
     }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="flex items-center gap-2">
+        <div className={CREATE_TASK_TITLE_ROW_CLASS}>
           <FormField
             control={form.control}
             name="icon"
@@ -117,9 +159,9 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             control={form.control}
             name="title"
             render={({ field }) => (
-              <FormItem className="flex-1">
+              <FormItem className="min-w-0">
                 <FormControl>
-                  <Input placeholder="Ej: Pagar la luz..." {...field} className="text-lg bg-transparent border-none shadow-none focus-visible:ring-0 pl-1 pr-2 h-auto font-medium" autoFocus />
+                  <Input placeholder="Ej: Pagar la luz..." {...field} className={CREATE_TASK_TITLE_INPUT_CLASS} autoFocus />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,42 +169,47 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
           />
         </div>
         
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={CREATE_TASK_CHIP_GRID_CLASS}>
           {/* Default due_at popover */}
           <FormField
             control={form.control}
             name="due_at"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <Popover>
-                  <PopoverTrigger render={
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "h-8 text-xs font-normal",
-                        !field.value && "text-muted-foreground border-dashed"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {field.value ? format(new Date(field.value), "PPP", { locale: es }) : <span>Fecha</span>}
-                    </Button>
-                  } />
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                        field.onChange(date?.toISOString())
-                        if (date) {
-                          form.setValue("is_all_day", true)
-                        } else {
-                          form.setValue("is_all_day", false)
-                        }
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+              <FormItem className="min-w-0 space-y-0">
+                <FormControl>
+                  <Popover>
+                    <PopoverTrigger render={
+                      <Button
+                        type="button"
+                        variant={"outline"}
+                        className={cn(
+                          CREATE_TASK_CHIP_BUTTON_CLASS,
+                          !field.value && "text-muted-foreground border-dashed"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {field.value ? format(new Date(field.value), "PPP", { locale: es }) : "Fecha"}
+                        </span>
+                      </Button>
+                    } />
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => {
+                          field.onChange(date?.toISOString())
+                          if (date) {
+                            form.setValue("is_all_day", true)
+                          } else {
+                            form.setValue("is_all_day", false)
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -172,10 +219,10 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             control={form.control}
             name="priority"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="min-w-0 space-y-0">
                 <Select onValueChange={(v) => field.onChange(parseInt(v || "2", 10))} value={field.value?.toString() || "2"}>
                   <FormControl>
-                    <SelectTrigger className="h-8 text-xs w-[110px]">
+                    <SelectTrigger className={CREATE_TASK_CHIP_TRIGGER_CLASS}>
                       <SelectValue placeholder="Prioridad">
                         {priorityMap[field.value?.toString() || "2"]}
                       </SelectValue>
@@ -197,10 +244,10 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             control={form.control}
             name="context_tag"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="min-w-0 space-y-0">
                 <Select onValueChange={(v) => field.onChange(v === "ninguno" ? null : v)} value={field.value || "ninguno"}>
                   <FormControl>
-                    <SelectTrigger className="h-8 text-xs w-[110px]">
+                    <SelectTrigger className={CREATE_TASK_CHIP_TRIGGER_CLASS}>
                       <SelectValue placeholder="Contexto">
                         {contextMap[field.value || "ninguno"]}
                       </SelectValue>
@@ -221,15 +268,15 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
           />
 
           {/* Conditional University Type */}
-          {form.watch("context_tag") === "@universidad" && (
+          {contextTag === "@universidad" && (
             <FormField
               control={form.control}
               name="university_type"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0 space-y-0">
                   <Select onValueChange={(v) => field.onChange(v === "ninguno" ? null : v)} value={field.value || "ninguno"}>
                     <FormControl>
-                      <SelectTrigger className="h-8 text-xs w-[120px] capitalize">
+                      <SelectTrigger className={cn(CREATE_TASK_CHIP_TRIGGER_CLASS, "capitalize")}>
                         <SelectValue placeholder="Tipo de Asunto">
                           {uniMap[field.value || "ninguno"]}
                         </SelectValue>
@@ -257,7 +304,17 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             control={form.control}
             name="is_recurring"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="min-w-0 space-y-0">
+                {(() => {
+                  const recurrenceValue = !field.value
+                    ? "no"
+                    : recurrenceRule?.includes("WEEKLY")
+                      ? "weekly"
+                      : recurrenceRule?.includes("MONTHLY")
+                        ? "monthly"
+                        : "daily"
+
+                  return (
                   <Select 
                     onValueChange={(val) => {
                       const isRec = val != null && val !== "no"
@@ -267,12 +324,12 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
                       else if (val === "monthly") form.setValue("recurrence_rule", "FREQ=MONTHLY;INTERVAL=1")
                       else form.setValue("recurrence_rule", null)
                     }} 
-                    value={!field.value ? "no" : form.watch("recurrence_rule")?.includes("WEEKLY") ? "weekly" : form.watch("recurrence_rule")?.includes("MONTHLY") ? "monthly" : "daily"}
+                    value={recurrenceValue}
                   >
                   <FormControl>
-                    <SelectTrigger className="h-8 text-xs w-[110px] capitalize">
+                    <SelectTrigger className={cn(CREATE_TASK_CHIP_TRIGGER_CLASS, "capitalize")}>
                       <SelectValue placeholder="No repite">
-                         {recMap[!field.value ? "no" : form.watch("recurrence_rule")?.includes("WEEKLY") ? "weekly" : form.watch("recurrence_rule")?.includes("MONTHLY") ? "monthly" : "daily"]}
+                         {recMap[recurrenceValue]}
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
@@ -283,6 +340,8 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
                     <SelectItem value="monthly">Mensual</SelectItem>
                   </SelectContent>
                 </Select>
+                  )
+                })()}
                 <FormMessage />
               </FormItem>
             )}
@@ -292,24 +351,24 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
             control={form.control}
             name="project_id"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="min-w-0 space-y-0">
                 <Select onValueChange={(v) => field.onChange(v === "ninguno" ? null : v)} value={field.value || "ninguno"}>
                   <FormControl>
-                    <SelectTrigger className="h-8 text-xs w-[140px]">
-                      <SelectValue placeholder="Proyecto (Opcional)">
+                    <SelectTrigger className={CREATE_TASK_CHIP_TRIGGER_CLASS}>
+                      <SelectValue placeholder="Proyecto (opcional)">
                         {field.value && field.value !== "ninguno" && projects?.find(p => p.id === field.value) ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
                             {projects.find(p => p.id === field.value)?.icon ? (
                               <span>{projects.find(p => p.id === field.value)?.icon}</span>
                             ) : (
                               <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: projects.find(p => p.id === field.value)?.color || 'var(--accent)' }} />
                             )}
-                            <span className="truncate max-w-[80px]">{projects.find(p => p.id === field.value)?.name}</span>
+                            <span className="truncate">{projects.find(p => p.id === field.value)?.name}</span>
                           </div>
                         ) : field.value && field.value !== "ninguno" ? (
                           "Cargando..."
                         ) : (
-                          "Proyecto (Opcional)"
+                          "Proyecto (opcional)"
                         )}
                       </SelectValue>
                     </SelectTrigger>
@@ -334,8 +393,8 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
           />
         </div>
 
-        <div className="pt-4 flex justify-end">
-          <Button type="submit" size="sm" disabled={createMutation.isPending} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+        <div className="flex justify-end pt-5">
+          <Button type="submit" disabled={createMutation.isPending} className="h-11 min-h-11 bg-accent px-5 text-accent-foreground hover:bg-accent/90 cursor-pointer">
             <Plus className="mr-2 h-4 w-4" />
             {createMutation.isPending ? "Guardando..." : "Crear"}
           </Button>
@@ -344,4 +403,3 @@ export function CreateTaskForm({ defaultStatus = "inbox", onSuccess }: CreateTas
     </Form>
   )
 }
-

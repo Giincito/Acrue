@@ -2,6 +2,7 @@ import { router, protectedProcedure } from '../trpc';
 import { CreateReminderSchema, UpdateReminderSchema } from '../schema/reminder';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { logger } from '@/lib/server/logger'
 
 export const reminderRouter = router({
   list: protectedProcedure
@@ -60,7 +61,7 @@ export const reminderRouter = router({
             await ctx.supabase.from('reminders').update({ gcal_event_id: gcalEventId }).eq('id', data.id);
           }
         } catch (err) {
-          console.error('Failed to push reminder to GCal:', err);
+          logger.error('Failed to push reminder to GCal:', err);
         }
       }
 
@@ -99,7 +100,7 @@ export const reminderRouter = router({
             is_all_day: data.is_all_day || false
           });
         } catch (err) {
-          console.error('Failed to update reminder on GCal:', err);
+          logger.error('Failed to update reminder on GCal:', err);
         }
       } else if (!data.gcal_event_id && updates.trigger_at) {
         try {
@@ -116,7 +117,7 @@ export const reminderRouter = router({
             await ctx.supabase.from('reminders').update({ gcal_event_id: gcalEventId }).eq('id', data.id);
           }
         } catch (err) {
-          console.error('Failed to push reminder to GCal on set trigger:', err);
+          logger.error('Failed to push reminder to GCal on set trigger:', err);
         }
       }
 
@@ -146,7 +147,7 @@ export const reminderRouter = router({
           const { deleteGoogleCalendarEvent } = await import('@/lib/google-calendar');
           await deleteGoogleCalendarEvent(ctx.user.id, data.gcal_event_id!);
         } catch (err) {
-          console.error('Failed to delete reminder on GCal:', err);
+          logger.error('Failed to delete reminder on GCal:', err);
         }
       }
 

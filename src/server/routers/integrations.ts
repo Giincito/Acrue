@@ -1,15 +1,31 @@
 import { router, protectedProcedure } from '../trpc';
-import { fetchGoogleCalendarEvents, updateGoogleCalendarEvent, deleteGoogleCalendarEvent } from '@/lib/google-calendar';
+import { updateGoogleCalendarEvent, deleteGoogleCalendarEvent } from '@/lib/google-calendar';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { logger } from '@/lib/server/logger'
+
+interface CalendarEventRow {
+  id: string
+  gcal_event_id: string | null
+  title: string
+  description?: string | null
+  start_at: string
+  end_at: string | null
+  source: string
+}
 
 export const integrationRouter = router({
   googleCalendarEvents: protectedProcedure
     .query(async ({ ctx }) => {
-      // 1. Fetch raw Google Events
-      const events = await fetchGoogleCalendarEvents(ctx.user.id);
+      // 1. Fetch cached Google Events from our DB
+      const { data: events, error: gcalError } = await ctx.supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', ctx.user.id)
+        .is('deleted_at', null)
+        .order('start_at', { ascending: true });
       
-      if (!events || events.length === 0) return [];
+      if (gcalError || !events || events.length === 0) return [];
 
       // 2. Fetch all local tasks and reminders that already have a gcal_event_id
       const { data: localTasks, error: tasksError } = await ctx.supabase
@@ -25,7 +41,7 @@ export const integrationRouter = router({
         .not('gcal_event_id', 'is', null);
 
       if (tasksError || remError) {
-        console.error('Error fetching local sync IDs for deduplication');
+        logger.error('Error fetching local sync IDs for deduplication');
       }
 
       // 3. Create a Fast Lookup Set for existing IDs
@@ -35,16 +51,19 @@ export const integrationRouter = router({
       ]);
 
       // 4. Transform and Filter Out the Duplicates
-      return events
-        .filter((ev: any) => !localIds.has(ev.id))
-        .map((ev: any) => ({
-          id: ev.id,
-          title: `[Google] ${ev.summary}`,
-          rawTitle: ev.summary,
+      const eventRows = events as CalendarEventRow[]
+      return eventRows
+        .filter((ev) => !localIds.has(ev.gcal_event_id))
+        .map((ev) => ({
+          id: ev.gcal_event_id ?? ev.id,
+          gcalEventId: ev.gcal_event_id,
+          source: ev.source || (ev.gcal_event_id ? 'google' : 'local'),
+          title: ev.gcal_event_id ? `[Google] ${ev.title}` : ev.title,
+          rawTitle: ev.title,
           description: ev.description || '',
-          start: ev.start.dateTime || ev.start.date,
-          end: ev.end.dateTime || ev.end.date,
-          is_all_day: !ev.start.dateTime,
+          start: ev.start_at,
+          end: ev.end_at,
+          is_all_day: !ev.start_at.includes('T'),
         }));
     }),
 

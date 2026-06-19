@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const ProjectStatusSchema = z.enum(["planned", "active", "completed", "archived"]);
+export const ProjectStatusSchema = z.enum(["planned", "active", "paused", "completed", "archived"]);
 
 export const CreateProjectSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),

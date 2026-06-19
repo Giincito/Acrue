@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { analyzeReceipt } from '@/lib/gemini/vision'
+import { executeAiAction } from '@/lib/gemini/actions'
+import { logger } from '@/lib/server/logger'
 
 const EPHEMERAL_BUCKET = 'receipts-ephemeral'
 
@@ -51,7 +53,7 @@ export async function POST(req: Request) {
       })
 
     if (uploadError) {
-      console.warn('[vision] Storage upload failed, proceeding with inline data:', uploadError.message)
+      logger.warn('[vision] Storage upload failed, proceeding with inline data', { error: uploadError.message })
       // Fallback: analyze directly without storage upload
     } else {
       uploadedToStorage = true
@@ -67,31 +69,24 @@ export async function POST(req: Request) {
       )
     }
 
-    // Step 3: INSERT into expenses
-    const { data: expense, error: dbError } = await supabase
-      .from('expenses')
-      .insert({
-        user_id: user.id,
-        description: receiptData.comercio ?? 'Ticket escaneado',
-        amount: -Math.abs(Number(receiptData.monto ?? 0)),
-        category: 'Supermercado',
-        date: receiptData.fecha ?? new Date().toISOString().split('T')[0],
-        payment_method: receiptData.metodo_pago ?? null,
-        source: 'ai_vision',
-      })
-      .select('id')
-      .single()
+    // Step 3: INSERT into expenses via executeAiAction to get Undo functionality
+    const { success, message, recordId, undoId } = await executeAiAction(
+      user.id,
+      { type: 'create_expense', payload: receiptData },
+      supabase
+    )
 
-    if (dbError) {
-      console.error('[vision] DB insert error:', dbError)
-      return NextResponse.json({ error: `Error al guardar: ${dbError.message}` }, { status: 500 })
+    if (!success) {
+      logger.error('[vision] Action error:', message)
+      return NextResponse.json({ error: `Error al guardar: ${message}` }, { status: 500 })
     }
 
-    // Step 4: Return extracted data (never the image)
+    // Step 4: Return extracted data and undo ID
     return NextResponse.json({
       success: true,
       data: receiptData,
-      expenseId: expense?.id,
+      expenseId: recordId,
+      undoId,
     })
   } finally {
     // ── GUARANTEED cleanup: always delete from Storage ───────────────────
@@ -101,7 +96,7 @@ export async function POST(req: Request) {
         .remove([storagePath])
 
       if (deleteError) {
-        console.error('[vision] CRITICAL: Failed to delete ephemeral image!', deleteError.message)
+        logger.error('[vision] CRITICAL: Failed to delete ephemeral image!', deleteError.message)
         // Log but don't fail the response — data was already returned
       }
     }

@@ -1,28 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/components/providers/trpc-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { Toaster } from "@/components/ui/sonner";
-import { CmdK } from "@/components/ui/cmdk";
-import { ChatBotFab } from "@/components/ui/chatbot-fab";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Acrue",
   description: "It all adds up.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }
+    ],
+    apple: [
+      { url: "/icons/icon-180.png", sizes: "180x180", type: "image/png" },
+      { url: "/icons/icon-167.png", sizes: "167x167", type: "image/png" }
+    ]
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Acrue"
   },
   formatDetection: {
@@ -31,11 +30,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#0C0C0B",
   width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false
+  initialScale: 1
 };
 
 export default function RootLayout({
@@ -44,16 +41,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
       >
         <TRPCProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <ServiceWorkerRegistration />
             {children}
             <Toaster />
-            <CmdK />
-            <ChatBotFab />
           </ThemeProvider>
         </TRPCProvider>
       </body>

@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    ".codex/**",
+    ".impeccable/**",
+    "test-results/**",
+    ".agents/skills/emil-design-eng/**",
+    ".agents/skills/impeccable/**",
+    ".agents/skills/review-animations/**",
   ]),
 ]);
 

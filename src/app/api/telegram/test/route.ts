@@ -1,40 +1,33 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { bot } from '@/lib/telegram';
+import { NextResponse } from 'next/server'
+import { sendTelegramMessage } from '@/lib/telegram'
+import { logger } from '@/lib/server/logger'
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (process.env.NODE_ENV !== 'development') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const { data: userData, error: dbError } = await supabase
-      .from('users')
-      .select('telegram_chat_id')
-      .eq('id', user.id)
-      .single();
+    const chatId = process.env.TELEGRAM_TEST_CHAT_ID
 
-    if (dbError || !userData?.telegram_chat_id) {
-      return NextResponse.json({ error: 'El usuario no tiene un telegram_chat_id vinculado' }, { status: 400 });
+    if (!chatId || !process.env.TELEGRAM_BOT_TOKEN) {
+      return NextResponse.json(
+        { error: 'TELEGRAM_TEST_CHAT_ID o TELEGRAM_BOT_TOKEN no configurado' },
+        { status: 500 }
+      )
     }
 
-    if (!bot) {
-      return NextResponse.json({ error: 'El bot de Telegram no está configurado (Falta TELEGRAM_BOT_TOKEN)' }, { status: 500 });
-    }
+    const sent = await sendTelegramMessage(chatId, 'Acrue: prueba de conexión.')
 
-    // Try sending the test message
-    await bot.telegram.sendMessage(
-      userData.telegram_chat_id, 
-      "✅ *¡Prueba de conexión exitosa!*\n\nTu bot de Acrue está configurado correctamente y ya puede enviarte notificaciones directamente a tu teléfono.",
-      { parse_mode: 'Markdown' }
-    );
-
-    return NextResponse.json({ success: true, message: 'Mensaje de prueba enviado correctamente a ' + userData.telegram_chat_id });
-  } catch (err: any) {
-    console.error("Test Telegram Error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({
+      success: sent,
+      description: sent ? null : 'Telegram no disponible',
+    })
+  } catch (err: unknown) {
+    logger.error('Test Telegram Error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Error interno' },
+      { status: 500 }
+    )
   }
 }

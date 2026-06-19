@@ -54,12 +54,13 @@ export const subjectRouter = router({
           user_id: ctx.user.id,
           name: input.name,
           code: input.code,
-          credits: input.credits,
+          commission: input.commission,
           status: input.status,
           target_grade: input.target_grade,
           prerequisites: input.prerequisites,
           weekly_hours: input.weekly_hours,
           enrollment_open_date: input.enrollment_open_date,
+          schedules: input.schedules,
         })
         .select()
         .single();

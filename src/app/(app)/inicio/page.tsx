@@ -1,0 +1,5 @@
+import InicioPage from '../page'
+
+export const dynamic = 'force-dynamic'
+
+export default InicioPage

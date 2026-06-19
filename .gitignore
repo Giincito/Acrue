@@ -29,9 +29,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev.log
+nextjs_logs.txt
+ts_errors.txt
+trpc_error.html
+replace_visuals.mjs
+scripts/test-db-error.ts
+scripts/test-moodle-calendar.ts
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# Supabase local CLI state
+supabase/.temp/
 
 # vercel
 .vercel
@@ -41,3 +52,14 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Sentry Config File
+.env.sentry-build-plugin
+
+# Local Codex / agent artifacts
+.codex/
+.impeccable/
+test-results/
+.agents/skills/emil-design-eng/
+.agents/skills/impeccable/
+.agents/skills/review-animations/

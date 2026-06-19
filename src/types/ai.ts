@@ -7,6 +7,12 @@ export type IntentType =
   | 'create_note'
   | 'create_project'
   | 'add_wishlist_item'
+  | 'create_debt'
+  | 'create_recipe'
+  | 'log_meal'
+  | 'add_pantry_item'
+  | 'add_to_shopping_list'
+  | 'search_cerebro'
   | 'desconocido'
 
 /** Structured response from Gemini intent detection */
@@ -98,6 +104,45 @@ export interface WishlistPayload {
   url?: string
 }
 
+export interface DeudaPayload {
+  name: string
+  person: string
+  type: 'owed_to_me' | 'i_owe'
+  amount: number
+}
+
+export interface RecetaPayload {
+  name: string
+  instructions?: string
+  calories?: number
+  diet_tags?: string[]
+}
+
+export interface MealLogPayload {
+  description?: string
+  recipe_id?: string
+  calories?: number
+  meal_type?: string
+  date?: string
+}
+
+export interface PantryItemPayload {
+  name: string
+  quantity?: number
+  unit?: string
+  min_stock?: number
+}
+
+export interface ShoppingListPayload {
+  name: string
+  quantity?: number
+  unit?: string
+}
+
+export interface CerebroSearchPayload {
+  query: string
+}
+
 export type IntentPayload =
   | GastoPayload
   | TareaPayload
@@ -106,6 +151,12 @@ export type IntentPayload =
   | NotaPayload
   | ProyectoPayload
   | WishlistPayload
+  | DeudaPayload
+  | RecetaPayload
+  | MealLogPayload
+  | PantryItemPayload
+  | ShoppingListPayload
+  | CerebroSearchPayload
   | Record<string, unknown>
 
 /** Message shape for chatbot conversation history */

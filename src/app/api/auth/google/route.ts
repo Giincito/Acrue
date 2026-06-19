@@ -1,21 +1,21 @@
 import { google } from 'googleapis'
 import { NextResponse } from 'next/server'
+import { getGoogleOAuthRedirectUri } from '@/lib/google-oauth'
 
 export async function GET(req: Request) {
-  const host = req.headers.get('host') || 'localhost:3001'
-  const protocol = host.includes('localhost') ? 'http' : 'https'
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}://${host}`
+  const redirectUri = getGoogleOAuthRedirectUri(req)
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    `${baseUrl}/api/auth/google/callback`
+    redirectUri
   )
 
   const scopes = [
     'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/calendar.events',
-    'https://www.googleapis.com/auth/tasks'
+    'https://www.googleapis.com/auth/tasks',
+    'https://www.googleapis.com/auth/gmail.readonly'
   ]
 
   const authUrl = oauth2Client.generateAuthUrl({

@@ -1,5 +1,7 @@
 import { geminiClient, GEMINI_MODEL } from '@/lib/gemini/client'
+import { withFallback } from '@/lib/integrations/resilience'
 import type { ReceiptData } from '@/types/ai'
+import { logger } from '@/lib/server/logger'
 
 const VISION_SYSTEM_PROMPT = `Sos un asistente experto en análisis de tickets y comprobantes de compra.
 Analizá la imagen y extraé la información del comprobante. 
@@ -26,35 +28,39 @@ export async function analyzeReceipt(
   imageBase64: string,
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg'
 ): Promise<ReceiptData | null> {
-  if (!geminiClient) {
-    console.error('[vision] Gemini client not initialized')
+  const client = geminiClient
+
+  if (!client) {
+    logger.error('[vision] Gemini client not initialized')
     return null
   }
 
-  try {
-    const model = geminiClient.getGenerativeModel({
-      model: GEMINI_MODEL,
-      generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
-      systemInstruction: VISION_SYSTEM_PROMPT,
-    })
+  const result = await withFallback<ReceiptData | null>(
+    async () => {
+      const model = client.getGenerativeModel({
+        model: GEMINI_MODEL,
+        generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
+        systemInstruction: VISION_SYSTEM_PROMPT,
+      })
 
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType,
-          data: imageBase64,
+      const response = await model.generateContent([
+        {
+          inlineData: {
+            mimeType,
+            data: imageBase64,
+          },
         },
-      },
-      'Analizá este ticket y devolvé el JSON con los datos extraídos.',
-    ])
+        'Analizá este ticket y devolvé el JSON con los datos extraídos.',
+      ])
 
-    const raw = result.response.text()
-    if (!raw) throw new Error('Empty response from Gemini Vision')
+      const raw = response.response.text()
+      if (!raw) throw new Error('Empty response from Gemini Vision')
 
-    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned) as ReceiptData
-  } catch (err) {
-    console.error('[vision] analyzeReceipt error:', err)
-    return null
-  }
+      const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      return JSON.parse(cleaned) as ReceiptData
+    },
+    null
+  )
+
+  return result.data
 }

@@ -20,7 +20,6 @@ export function showUndoToast({ message, onUndo, undoId, duration = 5000 }: Undo
     action: {
       label: 'Deshacer',
       onClick: async () => {
-        onUndo()
         if (undoId) {
           try {
             const res = await fetch('/api/undo', {
@@ -29,19 +28,24 @@ export function showUndoToast({ message, onUndo, undoId, duration = 5000 }: Undo
               body: JSON.stringify({ undoId }),
             })
             const data = await res.json()
-            if (!res.ok) {
+            if (res.ok) {
+              onUndo()
+              toast.success('Acción deshecha correctamente', { duration: 2000 })
+            } else {
               toast.error(data.error ?? 'No se pudo deshacer')
             }
           } catch {
             toast.error('Error de conexión al intentar deshacer')
           }
+        } else {
+          onUndo()
         }
       },
     },
     // Sonner's built-in rich colors
     className: 'undo-toast',
     style: {
-      '--toast-progress-bar-color': 'hsl(var(--accent))',
+      '--toast-progress-bar-color': 'var(--accent)',
     } as React.CSSProperties,
   })
 }

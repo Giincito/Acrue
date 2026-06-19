@@ -1,12 +1,11 @@
-import { GoogleGenerativeAI, GenerateContentRequest } from '@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { withFallback } from '@/lib/integrations/resilience'
+import { logger } from '@/lib/server/logger'
 
 const apiKey = process.env.GEMINI_API_KEY
 
-console.log('Gemini key loaded:', !!process.env.GEMINI_API_KEY)
-
 if (!apiKey) {
-  console.warn('⚠️ GEMINI_API_KEY is missing. Gemini features will be disabled.')
+  logger.warn('GEMINI_API_KEY is missing. Gemini features will be disabled.')
 }
 
 // Next.js HMR-safe singleton pattern
@@ -49,24 +48,18 @@ export async function callGemini(
 
   const { data, fromCache, error } = await withFallback(
     async () => {
-      try {
-        if (!geminiClient) throw new Error('Gemini client not initialized')
+      if (!geminiClient) throw new Error('Gemini client not initialized')
 
-        const generativeModel = geminiClient.getGenerativeModel({
-          model,
-          systemInstruction,
-          generationConfig: { temperature, maxOutputTokens },
-        })
+      const generativeModel = geminiClient.getGenerativeModel({
+        model,
+        systemInstruction,
+        generationConfig: { temperature, maxOutputTokens },
+      })
 
-        const result = await generativeModel.generateContent(prompt)
-        console.log('[callGemini] raw response:', result.response.text())
-        const text = result.response.text()
-        if (!text) throw new Error('Empty response from Gemini')
-        return text
-      } catch (err: any) {
-        console.error('Gemini error:', err)
-        throw err
-      }
+      const result = await generativeModel.generateContent(prompt)
+      const text = result.response.text()
+      if (!text) throw new Error('Empty response from Gemini')
+      return text
     },
     null as string | null,
     undefined // no Redis cache for raw Gemini calls (router handles its own caching)

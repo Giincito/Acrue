@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { trpc } from "@/lib/trpc"
 
@@ -13,7 +13,7 @@ import { format } from "date-fns"
 import { z } from "zod"
 
 const FormSchema = z.object({
-  title: z.string().min(1, "Title is required").max(600),
+  title: z.string().min(1, "El título es obligatorio").max(600),
   description: z.string().optional().nullable(),
   startDate: z.string().min(1, "Requerido"),
   startTime: z.string().optional().nullable(),
@@ -25,7 +25,9 @@ const FormSchema = z.object({
 type FormValues = z.infer<typeof FormSchema>
 
 import { toast } from "sonner"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { GenericColorLabel, GenericColorSelectItems } from "@/components/shared/generic-color-select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DEFAULT_GENERIC_COLOR } from "@/lib/generic-colors"
 import { cn } from "@/lib/utils"
 
 interface CreateReminderFormProps {
@@ -72,7 +74,7 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
   }
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(FormSchema) as any,
+    resolver: zodResolver(FormSchema) as Resolver<FormValues>,
     defaultValues: {
       title: "",
       description: "",
@@ -80,13 +82,13 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
       startTime: initStartTime,
       endDate: initEndDate,
       endTime: initEndTime,
-      color: "#ffedd5"
+      color: DEFAULT_GENERIC_COLOR
     },
   })
 
   const onSubmit = async (values: FormValues) => {
     try {
-      let startStr = `${values.startDate}T${values.startTime || "00:00:00"}`
+      const startStr = `${values.startDate}T${values.startTime || "00:00:00"}`
       
       let endDateTime: string | null = null;
       if (values.endDate) {
@@ -110,15 +112,14 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
       form.reset()
       onSuccess?.()
       toast.success("Recordatorio creado")
-    } catch (e: any) {
-      console.error("Failed to create reminder", e)
-      toast.error(e.message || "Error al crear recordatorio")
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Error al crear recordatorio"
+      toast.error(message)
     }
   }
 
-  const onError = (errors: any) => {
-    console.error("Validation errors", errors)
-    toast.error("Revisá los campos")
+  const onError = () => {
+      toast.error("Revisá los campos")
   }
 
   return (
@@ -130,7 +131,7 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input placeholder="Ej: Llamar al médico..." {...field} className="text-lg bg-transparent border-none shadow-none focus-visible:ring-0 px-2 h-auto font-medium" autoFocus />
+                <Input placeholder="Ej: llamar al médico..." {...field} className="text-lg bg-transparent border-none shadow-none focus-visible:ring-0 px-2 h-auto font-medium" autoFocus />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -155,7 +156,7 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
             name="startDate"
             render={({ field }) => (
               <FormItem className="space-y-1">
-                <div className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 tracking-wider">Fecha Inicio</div>
+                <div className="text-[10px] font-medium uppercase text-muted-foreground ml-1 tracking-wider">Fecha inicio</div>
                 <FormControl>
                   <Input 
                     type="date" 
@@ -173,7 +174,7 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
             name="startTime"
             render={({ field }) => (
               <FormItem className="space-y-1">
-                <div className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 tracking-wider">Hora Inicio (Opcional)</div>
+                <div className="text-[10px] font-medium uppercase text-muted-foreground ml-1 tracking-wider">Hora inicio (opcional)</div>
                 <FormControl>
                   <Input 
                     type="time" 
@@ -194,7 +195,7 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
             name="endDate"
             render={({ field }) => (
               <FormItem className="space-y-1">
-                <div className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 tracking-wider">Fecha Fin (Opcional)</div>
+                <div className="text-[10px] font-medium uppercase text-muted-foreground ml-1 tracking-wider">Fecha fin (opcional)</div>
                 <FormControl>
                   <Input 
                     type="date" 
@@ -215,7 +216,7 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
             name="endTime"
             render={({ field }) => (
               <FormItem className="space-y-1">
-                <div className="text-[10px] font-semibold uppercase text-muted-foreground ml-1 tracking-wider">Hora Fin (Opcional)</div>
+                <div className="text-[10px] font-medium uppercase text-muted-foreground ml-1 tracking-wider">Hora fin (opcional)</div>
                 <FormControl>
                   <Input 
                     type="time" 
@@ -239,26 +240,16 @@ export function CreateReminderForm({ defaultTriggerAt, defaultTriggerEndAt, onSu
             name="color"
             render={({ field }) => (
               <FormItem>
-                <Select onValueChange={field.onChange} defaultValue={field.value || "#ffedd5"}>
+                <Select onValueChange={field.onChange} defaultValue={field.value || DEFAULT_GENERIC_COLOR}>
                   <FormControl>
-                    <SelectTrigger className="h-9 text-xs w-[130px] bg-muted/20 border-transparent hover:bg-muted/40 transition-colors shadow-none">
+                    <SelectTrigger className="h-9 w-[140px] cursor-pointer border-transparent bg-muted/20 text-xs shadow-none transition-colors hover:bg-muted/40">
                       <SelectValue placeholder="Color">
-                         {field.value === "#ffedd5" && <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#ffedd5]" /> Naranja</span>}
-                         {field.value === "#fef9c3" && <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#fef9c3]" /> Amarillo</span>}
-                         {field.value === "#dcfce7" && <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#dcfce7]" /> Verde</span>}
-                         {field.value === "#dbeafe" && <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#dbeafe]" /> Azul</span>}
-                         {field.value === "#f3e8ff" && <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#f3e8ff]" /> Púrpura</span>}
-                         {field.value === "#ffe4e6" && <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#ffe4e6]" /> Rosa</span>}
+                        <GenericColorLabel value={field.value || DEFAULT_GENERIC_COLOR} />
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="#ffedd5"><span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#ffedd5] border border-[#f97316]" /> Naranja</span></SelectItem>
-                    <SelectItem value="#fef9c3"><span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#fef9c3] border border-[#eab308]" /> Amarillo</span></SelectItem>
-                    <SelectItem value="#dcfce7"><span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#dcfce7] border border-[#22c55e]" /> Verde</span></SelectItem>
-                    <SelectItem value="#dbeafe"><span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#dbeafe] border border-[#3b82f6]" /> Azul</span></SelectItem>
-                    <SelectItem value="#f3e8ff"><span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#f3e8ff] border border-[#a855f7]" /> Púrpura</span></SelectItem>
-                    <SelectItem value="#ffe4e6"><span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#ffe4e6] border border-[#f43f5e]" /> Rosa</span></SelectItem>
+                    <GenericColorSelectItems />
                   </SelectContent>
                 </Select>
                 <FormMessage />

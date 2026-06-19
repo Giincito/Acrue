@@ -10,15 +10,15 @@ import { useCallback, useRef } from 'react'
  * @param fn - The async function to debounce
  * @param delay - Debounce delay in ms (default 400)
  */
-export function useGeminiDebounce<T extends (...args: any[]) => Promise<any>>(
-  fn: T,
+export function useGeminiDebounce<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
   delay = 400
-): T {
+): (...args: TArgs) => Promise<TResult> {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const debounced = useCallback(
-    (...args: Parameters<T>) => {
-      return new Promise<Awaited<ReturnType<T>>>((resolve, reject) => {
+    (...args: TArgs) => {
+      return new Promise<TResult>((resolve, reject) => {
         if (timerRef.current) clearTimeout(timerRef.current)
         timerRef.current = setTimeout(async () => {
           try {
@@ -32,5 +32,5 @@ export function useGeminiDebounce<T extends (...args: any[]) => Promise<any>>(
     [fn, delay]
   )
 
-  return debounced as T
+  return debounced
 }

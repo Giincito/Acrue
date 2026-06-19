@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { motion, useAnimation, PanInfo } from "framer-motion"
+import { motion, useAnimation } from "framer-motion"
 import { useDrag } from "@use-gesture/react"
 import { Check, Trash2, CalendarIcon } from "lucide-react"
 import { format, isValid } from "date-fns"
@@ -62,11 +62,12 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
     },
     { filterTaps: true }
   )
+  const dragHandlers = bind() as unknown as Record<string, unknown>
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (isTrash && onRestore) {
-      onRestore(task.id)
+    if (isTrash) {
+      onDelete(task.id)
     } else if (isCompleted && onUncomplete) {
       onUncomplete(task.id)
     } else if (!isCompleted && !isTrash) {
@@ -76,13 +77,13 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
 
   // Priority color/indicator
   const priorityColors = {
-    1: "bg-red-500", // High
-    2: "bg-yellow-500", // Medium
-    3: "bg-blue-500", // Low
+    1: "bg-destructive", // High
+    2: "bg-warning", // Medium
+    3: "bg-accent", // Low
   }
 
   return (
-    <div className="relative overflow-hidden mb-2 rounded-lg touch-pan-y group isolate">
+    <div className="relative overflow-hidden mb-1.5 rounded-lg touch-pan-y group isolate">
       {/* Background Actions (revealed on swipe) */}
       <div className={cn(
         "absolute inset-0 flex justify-between items-center px-4 rounded-lg bg-muted z-0 transition-opacity duration-200",
@@ -101,13 +102,13 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
 
       {/* Foreground Draggable Card */}
       <motion.div
-        {...(bind() as any)}
+        {...dragHandlers}
         animate={controls}
         whileHover={{ scale: 1.002, y: -1 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => onClick?.(task)}
         className={cn(
-          "relative overflow-hidden flex items-center p-4 bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-xl cursor-pointer select-none transition-colors duration-300 z-10 shadow-sm hover:shadow-md ring-1 ring-black/5 dark:ring-white/10",
+          "relative min-h-[56px] overflow-hidden flex items-center px-3 py-2 bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-lg cursor-pointer select-none transition-colors duration-300 z-10 shadow-sm hover:shadow-md ring-1 ring-black/5 dark:ring-white/10",
           isCompleted && "text-muted-foreground/80"
         )}
       >
@@ -116,36 +117,42 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
 
         {/* Checkbox / Restore indicator */}
         <button
+          type="button"
           onClick={handleCheckboxClick}
-          className={cn(
-            "flex-shrink-0 w-6 h-6 rounded-full border mr-4 flex items-center justify-center transition-all duration-300 cursor-pointer",
-            isCompleted 
-              ? "bg-primary border-primary text-primary-foreground shadow-sm" 
-              : "border-muted-foreground/40 hover:border-primary hover:bg-primary/10 hover:scale-110 shadow-sm"
-          )}
+          aria-label={isCompleted ? `Marcar ${task.title} como pendiente` : `Marcar ${task.title} como completada`}
+          className="mr-3 flex min-h-11 min-w-11 flex-shrink-0 cursor-pointer items-center justify-center rounded-full transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out motion-reduce:transition-none"
         >
+          <span
+            className={cn(
+              "flex h-5 w-5 items-center justify-center rounded-full border transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out motion-reduce:transition-none",
+              isCompleted
+                ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                : "border-muted-foreground/40 shadow-sm hover:border-primary hover:bg-primary/10 hover:scale-110 motion-reduce:hover:scale-100"
+            )}
+          >
           {isCompleted && !isTrash && (
              <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
             >
-              <Check className="w-3.5 h-3.5" strokeWidth={3} />
+              <Check className="h-3 w-3" strokeWidth={3} />
             </motion.div>
           )}
           {isTrash && (
             <motion.div>
-              <Trash2 className="w-3 h-3 text-muted-foreground" />
+              <Trash2 className="w-3 h-3 text-destructive" />
             </motion.div>
           )}
+          </span>
         </button>
 
         {/* Content */}
-          <div className="flex-1 min-w-0 flex flex-row items-center gap-4 overflow-hidden pr-2">
+          <div className="flex-1 min-w-0 flex flex-row items-center gap-3 overflow-hidden pr-2">
             <div className="flex items-center gap-2 shrink-0 truncate">
               <TaskIcon icon={task.icon} size={16} />
               <p className={cn(
-                "text-sm font-medium truncate transition-all text-foreground",
+                "text-sm font-medium truncate transition-[color,opacity] duration-150 ease-out text-foreground motion-reduce:transition-none",
                 isCompleted && "line-through text-muted-foreground opacity-80"
               )}>
                 {task.title}
@@ -179,10 +186,12 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
 
             {isCompleted && !isTrash && (
               <button 
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   onDelete(task.id)
                 }} 
+                aria-label={`Eliminar ${task.title}`}
                 className="ml-2 p-2 text-muted-foreground hover:text-destructive transition-colors rounded-md hover:bg-destructive/10 shrink-0"
                 title="Eliminar tarea"
               >
@@ -191,6 +200,7 @@ export function TaskItem({ task, onComplete, onUncomplete, onRestore, onDelete, 
             )}
             {isTrash && (
               <button 
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   if (onRestore) onRestore(task.id)

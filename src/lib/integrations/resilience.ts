@@ -1,4 +1,5 @@
 import { redis } from '@/lib/redis'
+import { logger } from '@/lib/server/logger'
 
 /**
  * Wraps an async function with a fallback value and optional Redis cache.
@@ -24,15 +25,31 @@ export async function withFallback<T>(
     return { data, fromCache: false }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Servicio no disponible'
-    console.error(`[withFallback] Error${cacheKey ? ` (key: ${cacheKey})` : ''}:`, errorMessage)
+    const errorContext = err instanceof Error
+      ? {
+          error: err.message,
+          name: err.name,
+          stack: err.stack,
+        }
+      : { error: errorMessage }
+    logger.warn(`[withFallback] Degraded service${cacheKey ? ` (key: ${cacheKey})` : ''}`, {
+      ...errorContext,
+    })
 
     if (cacheKey && redis) {
       const cached = await redis.get<string>(cacheKey)
       if (cached) {
-        return {
-          data: JSON.parse(cached) as T,
-          fromCache: true,
-          error: errorMessage,
+        try {
+          return {
+            data: JSON.parse(cached) as T,
+            fromCache: true,
+            error: errorMessage,
+          }
+        } catch (cacheError) {
+          const cacheErrorMessage = cacheError instanceof Error ? cacheError.message : 'Cache corrupta'
+          logger.warn(`[withFallback] Ignoring corrupt cache (key: ${cacheKey})`, {
+            error: cacheErrorMessage,
+          })
         }
       }
     }

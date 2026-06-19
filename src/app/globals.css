@@ -23,6 +23,10 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -45,6 +49,9 @@
 }
 
 :root {
+  --font-geist-sans: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", "Courier New", monospace;
+
   /* Canvas Light */
   --background: #F6F6F3;
   --foreground: #0C0C0B;
@@ -69,6 +76,10 @@
   
   --destructive: #9B3A3A;
   --destructive-foreground: #FFFFFF;
+  --success: #3A7D44;
+  --success-foreground: #FFFFFF;
+  --warning: #A0742A;
+  --warning-foreground: #FFFFFF;
   
   --border: #C8C8C2; /* Ash */
   --input: #C8C8C2;
@@ -111,6 +122,10 @@
   
   --destructive: #9B3A3A;
   --destructive-foreground: #FFFFFF;
+  --success: #3A7D44;
+  --success-foreground: #FFFFFF;
+  --warning: #A0742A;
+  --warning-foreground: #FFFFFF;
   
   --border: #3C3C3A; /* Slate */
   --input: #3C3C3A;
@@ -133,6 +148,19 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
   
   /* All images generated or uploaded should be grayscale per Design.md */
   img, [data-media], svg.grayscale-force {
@@ -142,19 +170,30 @@
   /* Soften standard inputs by default */
   input, textarea, select {
     @apply shadow-sm;
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
   }
 }
 
-.theme-mono {
-  --accent: #000000;
-  --accent-foreground: #FFFFFF;
-  --ring: #000000;
-  --sidebar-ring: #000000;
+@layer utilities {
+  .no-scrollbar,
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar,
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-.dark.theme-mono {
-  --accent: #FFFFFF;
-  --accent-foreground: #000000;
-  --ring: #FFFFFF;
-  --sidebar-ring: #FFFFFF;
+@keyframes ai-thinking-wave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }

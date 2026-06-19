@@ -1,13 +1,13 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import superjson from 'superjson';
 import { createClient } from '@/utils/supabase/server';
-import { z } from 'zod';
 
 // We need to fetch the context for each tRPC request 
 // (which gets the user session from Supabase)
 export const createContext = async (opts: { req: Request }) => {
+  void opts
   const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return {
     supabase,

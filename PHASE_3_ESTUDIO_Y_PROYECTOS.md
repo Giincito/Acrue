@@ -11,23 +11,23 @@
 - [x] Auditoría de espaciado: Nada pegado a los bordes.
 
 ### 3.1 Módulo Estudio — CRUD base
-- [ ] API routes para `subjects` y `assignments`.
-- [ ] Vistas de lista de materias, exámenes, formulario con correlativas o pesos.
+- [x] API routes para `subjects` y `assignments`.
+- [x] Vistas de lista de materias, exámenes, formulario con correlativas o pesos.
 
 ### 3.2 Calculadora de promedio ponderado
-- [ ] Lógica `calculateWeightedAverage()`.
-- [ ] Recálculo en tiempo real.
+- [x] Lógica `calculateWeightedAverage()`.
+- [x] Recálculo en tiempo real.
 
 ### 3.3 Carga horaria y alertas
-- [ ] Vista semanal.
-- [ ] Alertas telegram para inscripciones a exámenes y entregas.
+- [x] Vista semanal.
+- [x] Alertas telegram para inscripciones a exámenes y entregas.
 
 ### 3.4 Integración Moodle UNICEN
-- [ ] Formulario credenciales + encriptación.
-- [ ] Script Moodle REST API para extraer entregas y avisos.
-- [ ] Vercel Cron cada 2h.
+- [x] Formulario credenciales + encriptación.
+- [x] Script Moodle REST API para extraer entregas y avisos.
+- [x] Vercel Cron cada 2h.
 
 ### 3.5 IA en Estudio
-- [ ] Sugerir plan de estudio desde Gemini.
-- [ ] Resumir noticias del campus.
-- [ ] Conectar chatbot al contexto de materias y exámenes.
+- [x] Sugerir plan de estudio desde Gemini.
+- [x] Resumir noticias del campus.
+- [x] Conectar chatbot al contexto de materias y exámenes.

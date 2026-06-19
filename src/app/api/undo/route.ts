@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { redis } from '@/lib/redis'
 import type { UndoPayload } from '@/types/ai'
+import { logger } from '@/lib/server/logger'
 
 export async function POST(req: Request) {
   try {
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
       .eq('user_id', user.id) // Double-check RLS even with service role
 
     if (updateError) {
-      console.error('[api/undo] Soft delete error:', updateError)
+      logger.error('[api/undo] Soft delete error:', updateError)
       return NextResponse.json({ error: `Error al deshacer: ${updateError.message}` }, { status: 500 })
     }
 
@@ -52,8 +53,8 @@ export async function POST(req: Request) {
     await redis.del(undoId)
 
     return NextResponse.json({ success: true, message: 'Acción deshecha correctamente' })
-  } catch (err: any) {
-    console.error('[api/undo] Unexpected error:', err)
+  } catch (err: unknown) {
+    logger.error('[api/undo] Unexpected error:', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, X } from "lucide-react"
+import { X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TaskIcon } from "@/components/ui/TaskIcon"
 import { ICON_SET } from "@/lib/icons"
@@ -37,6 +37,7 @@ export function IconPicker({ value, onChange, disabled }: IconPickerProps) {
           <span className="text-xs font-medium text-muted-foreground">Elegir ícono</span>
           {value && (
             <button
+              type="button"
               onClick={() => {
                 onChange(null)
                 setOpen(false)
@@ -53,11 +54,13 @@ export function IconPicker({ value, onChange, disabled }: IconPickerProps) {
             const isSelected = value === icon.id
             return (
               <button
+                type="button"
                 key={icon.id}
                 onClick={() => {
                   onChange(icon.id)
                   setOpen(false)
                 }}
+                aria-label={`Seleccionar icono ${icon.label}`}
                 title={icon.label}
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors",

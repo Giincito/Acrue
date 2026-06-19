@@ -11,13 +11,13 @@ import type { RouterResponse, IntentPayload } from '@/types/ai'
 
 // ── Slash commands ────────────────────────────────────────────────────────────
 const SLASH_COMMANDS = [
-  { cmd: '/hoy',      label: 'Ver tareas de hoy',      icon: '📅', route: '/hoy' },
-  { cmd: '/semana',   label: 'Vista semanal',           icon: '🗓', route: '/semanal' },
-  { cmd: '/gasto',    label: 'Registrar gasto rápido',  icon: '💸', route: '/finanzas' },
-  { cmd: '/tarea',    label: 'Nueva tarea',             icon: '✅', route: '/tareas' },
-  { cmd: '/nota',     label: 'Nueva nota',              icon: '📝', route: '/cerebro' },
-  { cmd: '/foco',     label: 'Activar modo foco',       icon: '🎯', route: '/foco' },
-  { cmd: '/deshacer', label: 'Deshacer última acción',  icon: '↩️', route: null },
+  { cmd: '/hoy',      label: 'Ver tareas de hoy',      route: '/hoy' },
+  { cmd: '/semana',   label: 'Vista semanal',           route: '/semanal' },
+  { cmd: '/gasto',    label: 'Registrar gasto rápido',  route: '/finanzas' },
+  { cmd: '/tarea',    label: 'Nueva tarea',             route: '/tareas' },
+  { cmd: '/nota',     label: 'Nueva nota',              route: '/cerebro' },
+  { cmd: '/foco',     label: 'Activar modo foco',       route: '/foco' },
+  { cmd: '/deshacer', label: 'Deshacer última acción',  route: null },
 ]
 
 type CmdKState = 'idle' | 'thinking' | 'preview'
@@ -42,6 +42,10 @@ async function callRouter(text: string): Promise<RouterResponse> {
   return res.json()
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Error desconocido'
+}
+
 export function CmdK() {
   const router = useRouter()
   const utils = trpc.useUtils()
@@ -58,7 +62,7 @@ export function CmdK() {
   const invalidateIntent = React.useCallback(async (intentName?: string) => {
     switch (intentName) {
       case 'create_event':
-        await utils.reminders?.list?.invalidate()
+        await utils.integrations?.googleCalendarEvents?.invalidate()
         break
       case 'create_task':
         await utils.tasks?.list?.invalidate()
@@ -73,6 +77,7 @@ export function CmdK() {
       default:
         await utils.tasks?.list?.invalidate()
         await utils.reminders?.list?.invalidate()
+        await utils.integrations?.googleCalendarEvents?.invalidate()
         if (utils.projects) await utils.projects.list.invalidate()
     }
   }, [utils])
@@ -85,8 +90,13 @@ export function CmdK() {
         setOpen((prev) => !prev)
       }
     }
+    const openCommandMenu = () => setOpen(true)
     document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
+    window.addEventListener('acrue:open-cmdk', openCommandMenu)
+    return () => {
+      document.removeEventListener('keydown', down)
+      window.removeEventListener('acrue:open-cmdk', openCommandMenu)
+    }
   }, [])
 
   // Reset state on close
@@ -135,12 +145,27 @@ export function CmdK() {
       return
     }
 
+    if (text.toLowerCase().startsWith('@cerebro')) {
+      const query = text.replace(/^@cerebro/i, '').trim()
+      router.push(`/cerebro${query ? `?q=${encodeURIComponent(query)}` : ''}`)
+      handleClose(false)
+      return
+    }
+
     setState('thinking')
     setError(null)
     setPreview(null)
 
     try {
       const result = await debouncedRouter(text)
+
+      if (result.intent === 'search_cerebro') {
+        const previewPayload = (result.preview ?? {}) as Record<string, unknown>
+        const query = String(previewPayload.query ?? text).trim()
+        router.push(`/cerebro?q=${encodeURIComponent(query)}`)
+        handleClose(false)
+        return
+      }
 
       if (result.executed) {
         // ── High confidence: auto-saved ──────────────────────────────────
@@ -170,11 +195,11 @@ export function CmdK() {
           confidence: result.confidence,
         })
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState('idle')
-      setError(err.message ?? 'Error desconocido')
+      setError(getErrorMessage(err))
     }
-  }, [debouncedRouter, handleSlashCommand, handleClose])
+  }, [debouncedRouter, handleSlashCommand, handleClose, invalidateIntent, router])
 
   // ── Confirm preview ──────────────────────────────────────────────────────
   const handleConfirmPreview = React.useCallback(async () => {
@@ -198,7 +223,7 @@ export function CmdK() {
     } catch {
       setState('idle')
     }
-  }, [preview, handleClose])
+  }, [preview, handleClose, invalidateIntent])
 
   // ── Filter slash commands when user types "/" ────────────────────────────
   const filteredSlash = input.startsWith('/')
@@ -206,6 +231,7 @@ export function CmdK() {
     : []
   const showSlash = filteredSlash.length > 0
   const showDefaultSuggestions = input === '' && state === 'idle'
+  const previewFields = (preview?.preview ?? {}) as Record<string, unknown>
 
   return (
     <CommandDialog open={open} onOpenChange={handleClose}>
@@ -228,14 +254,14 @@ export function CmdK() {
         {/* ── AI Thinking state ── */}
         {state === 'thinking' && (
           <div className="flex items-center justify-center py-6">
-            <AiThinking text="Procesando con IA..." />
+            <AiThinking text="Procesando..." />
           </div>
         )}
 
         {/* ── Error state ── */}
         {error && state === 'idle' && (
           <div className="px-4 py-3 text-sm text-destructive flex items-center gap-2">
-            <span>⚠️</span> {error}
+            {error}
           </div>
         )}
 
@@ -248,42 +274,42 @@ export function CmdK() {
             <div className="rounded-lg border bg-card p-3 text-sm font-mono space-y-1">
               {preview.intent === 'create_task' && (
                 <>
-                  <div className="font-bold mb-2 uppercase tracking-wide text-xs text-primary">Nueva tarea</div>
-                  {(preview.preview as any)?.title && (
+                  <div className="font-medium mb-2 uppercase tracking-wide text-xs text-primary">Nueva tarea</div>
+                  {previewFields.title && (
                     <div className="flex flex-col sm:flex-row sm:gap-2">
                       <span className="text-muted-foreground min-w-[80px]">Título:</span>
-                      <span className="font-medium">{String((preview.preview as any).title)}</span>
+                      <span className="font-medium">{String(previewFields.title)}</span>
                     </div>
                   )}
-                  {(preview.preview as any)?.due_at && (
+                  {previewFields.due_at && (
                     <div className="flex flex-col sm:flex-row sm:gap-2">
                       <span className="text-muted-foreground min-w-[80px]">Fecha:</span>
-                      <span className="font-medium">{new Date(String((preview.preview as any).due_at)).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                      <span className="font-medium">{new Date(String(previewFields.due_at)).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                     </div>
                   )}
-                  {(preview.preview as any)?.priority && (
+                  {previewFields.priority && (
                     <div className="flex flex-col sm:flex-row sm:gap-2">
                       <span className="text-muted-foreground min-w-[80px]">Prioridad:</span>
-                      <span className="font-medium capitalize">{String((preview.preview as any).priority)}</span>
+                      <span className="font-medium capitalize">{String(previewFields.priority)}</span>
                     </div>
                   )}
                 </>
               )}
               {preview.intent === 'create_expense' && (
                 <>
-                  <div className="font-bold mb-2 uppercase tracking-wide text-xs text-primary">Nuevo gasto</div>
+                  <div className="font-medium mb-2 uppercase tracking-wide text-xs text-primary">Nuevo gasto</div>
                   <div className="flex flex-col sm:flex-row sm:gap-2">
                     <span className="text-muted-foreground min-w-[80px]">Monto:</span>
-                    <span className="font-medium font-mono">${String((preview.preview as any)?.amount || (preview.preview as any)?.monto)}</span>
+                    <span className="font-medium font-mono">${String(previewFields.amount || previewFields.monto)}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:gap-2">
                     <span className="text-muted-foreground min-w-[80px]">Nota:</span>
-                    <span className="font-medium capitalize">{String((preview.preview as any)?.description || (preview.preview as any)?.descripcion || 'Sin nota')}</span>
+                    <span className="font-medium capitalize">{String(previewFields.description || previewFields.descripcion || 'Sin nota')}</span>
                   </div>
                 </>
               )}
               {/* Fallback para otras intenciones genéricas */}
-              {preview.intent !== 'create_task' && preview.intent !== 'create_expense' && Object.entries(preview.preview).map(([k, v]) => (
+              {preview.intent !== 'create_task' && preview.intent !== 'create_expense' && Object.entries(previewFields).map(([k, v]) => (
                 <div key={k} className="flex flex-col sm:flex-row sm:gap-2">
                   <span className="text-muted-foreground min-w-[100px] capitalize">{k}:</span>
                   <span className="font-medium">{String(v)}</span>
@@ -292,12 +318,14 @@ export function CmdK() {
             </div>
             <div className="flex gap-2 pt-1">
               <button
+                type="button"
                 onClick={handleConfirmPreview}
                 className="flex-1 rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity"
               >
-                Confirmar ✓
+                Confirmar
               </button>
               <button
+                type="button"
                 onClick={() => { setState('idle'); setPreview(null) }}
                 className="rounded-md border px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
               >
@@ -317,7 +345,6 @@ export function CmdK() {
                 onSelect={() => handleSlashCommand(s.cmd)}
                 className="gap-2 cursor-pointer"
               >
-                <span className="text-lg">{s.icon}</span>
                 <span className="font-mono text-accent">{s.cmd}</span>
                 <span className="text-muted-foreground ml-1">— {s.label}</span>
               </CommandItem>
@@ -330,13 +357,16 @@ export function CmdK() {
           <>
             <CommandGroup heading="Sugerencias rápidas">
               <CommandItem onSelect={() => setInput('Gasté ')} className="cursor-pointer gap-2">
-                <span>💸</span> Registrar un gasto
+                Registrar un gasto
               </CommandItem>
               <CommandItem onSelect={() => setInput('Tarea: ')} className="cursor-pointer gap-2">
-                <span>✅</span> Crear una tarea
+                Crear una tarea
               </CommandItem>
               <CommandItem onSelect={() => setInput('Evento: ')} className="cursor-pointer gap-2">
-                <span>📅</span> Agendar un evento
+                Agendar un evento
+              </CommandItem>
+              <CommandItem onSelect={() => setInput('@cerebro ')} className="cursor-pointer gap-2">
+                Buscar en Cerebro
               </CommandItem>
             </CommandGroup>
             <CommandGroup heading="Comandos">
@@ -347,7 +377,6 @@ export function CmdK() {
                   onSelect={() => handleSlashCommand(s.cmd)}
                   className="gap-2 cursor-pointer"
                 >
-                  <span>{s.icon}</span>
                   <span className="font-mono text-accent">{s.cmd}</span>
                 </CommandItem>
               ))}

@@ -1,0 +1,7 @@
+.env*
+!.env.example
+.env.sentry-build-plugin
+.env.vercel.local
+node_modules
+.next
+coverage

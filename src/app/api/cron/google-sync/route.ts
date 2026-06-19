@@ -1,31 +1,24 @@
-import { createClient } from '@supabase/supabase-js'
 import { fetchGoogleCalendarEvents } from '@/lib/google-calendar'
+import { assertCronRequest } from '@/lib/server/cron-auth'
+import { createServiceClient } from '@/utils/supabase/service'
 
 export async function GET(req: Request) {
   try {
-    const authHeader = req.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return new Response('Unauthorized', { status: 401 })
-    }
+    const authError = assertCronRequest(req)
+    if (authError) return authError
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const supabase = createServiceClient()
 
-    // Fetch users with google_refresh_token
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, settings')
-      .not('settings', 'is', null)
+    const { data: integrations, error: integrationsError } = await supabase
+      .from('google_integrations')
+      .select('user_id')
 
-    if (usersError) throw usersError
+    if (integrationsError) throw integrationsError
 
     let syncedCount = 0
 
-    for (const user of users) {
-      if (!user.settings?.google_refresh_token) continue
-
-      const events = await fetchGoogleCalendarEvents(user.id)
+    for (const integration of integrations) {
+      const events = await fetchGoogleCalendarEvents(integration.user_id)
       
       for (const ev of events) {
          if (!ev.id || !ev.summary || (!ev.start?.dateTime && !ev.start?.date)) continue
@@ -35,7 +28,7 @@ export async function GET(req: Request) {
 
          // check existing
          const { data: existing } = await supabase.from('calendar_events')
-           .select('id').eq('gcal_event_id', ev.id).maybeSingle()
+           .select('id').eq('user_id', integration.user_id).eq('gcal_event_id', ev.id).maybeSingle()
 
          if (existing) {
            await supabase.from('calendar_events').update({
@@ -43,10 +36,11 @@ export async function GET(req: Request) {
              start_at: startAt,
              end_at: endAt,
              meet_url: ev.hangoutLink || null,
+             deleted_at: null,
            }).eq('id', existing.id)
          } else {
            await supabase.from('calendar_events').insert({
-             user_id: user.id,
+             user_id: integration.user_id,
              title: ev.summary,
              start_at: startAt,
              end_at: endAt,
@@ -63,7 +57,8 @@ export async function GET(req: Request) {
       headers: { 'Content-Type': 'application/json' },
     })
 
-  } catch (error: any) {
-    return new Response(error.message, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error interno'
+    return new Response(message, { status: 500 })
   }
 }
