@@ -75,6 +75,14 @@ const MOBILE_MODULE_ITEMS: MobileNavItem[] = [
   { id: "configuracion", name: "Ajustes", href: "/configuracion", icon: Settings },
 ]
 
+const MOBILE_MODULE_GROUPS = [
+  { name: "General", ids: ["inicio", "calendario"] },
+  { name: "Productividad", ids: ["tareas", "proyectos", "foco"] },
+  { name: "Educación", ids: ["estudio", "cerebro"] },
+  { name: "Vida", ids: ["finanzas", "despensa", "recetas", "habitos", "wishlist"] },
+  { name: "Sistema", ids: ["configuracion"] },
+] satisfies Array<{ name: string; ids: MobileModuleId[] }>
+
 const MOBILE_FEATURED_STORAGE_KEY = "acrue_mobile_featured_modules"
 const MOBILE_MODULE_ORDER_STORAGE_KEY = "acrue_mobile_module_order"
 const MOBILE_NAVIGATION_EVENT = "acrue_mobile_navigation_changed"
@@ -193,7 +201,7 @@ function MobileNavIcon({
   return (
     <span
       className={cn(
-        "relative flex h-9 w-11 items-center justify-center rounded-lg transition-[background-color,color,box-shadow,transform] duration-150 ease-out motion-reduce:transition-none",
+        "relative flex h-8 w-10 items-center justify-center rounded-lg transition-[background-color,color,box-shadow,transform] duration-150 ease-out motion-reduce:transition-none",
         isActive
           ? "bg-accent/10 text-accent ring-1 ring-accent/25 shadow-sm"
           : "text-muted-foreground"
@@ -202,12 +210,12 @@ function MobileNavIcon({
       <Icon
         aria-hidden="true"
         className={cn(
-          "h-[19px] w-[19px] transition-[stroke-width,transform] duration-150 ease-out motion-reduce:transition-none",
+          "h-[18px] w-[18px] transition-[stroke-width,transform] duration-150 ease-out motion-reduce:transition-none",
           isActive ? "stroke-[1.9]" : "stroke-[1.5]"
         )}
       />
       {isActive && (
-        <span className="absolute -bottom-2 h-0.5 w-3 rounded-full bg-accent" aria-hidden="true" />
+        <span className="absolute -bottom-1 h-0.5 w-3 rounded-full bg-accent" aria-hidden="true" />
       )}
     </span>
   )
@@ -231,7 +239,7 @@ function MobileNavLink({
       data-active={isActive ? "true" : undefined}
       data-featured-slot={featuredSlot}
       className={cn(
-        "flex h-full min-w-0 cursor-pointer flex-col items-center justify-center gap-2 px-1 pt-1 pb-2 text-muted-foreground transition-colors duration-150 ease-out motion-reduce:transition-none",
+        "flex h-full min-w-0 cursor-pointer flex-col items-center justify-center gap-1.5 px-1 pt-1 pb-2 text-muted-foreground transition-colors duration-150 ease-out motion-reduce:transition-none",
         isActive ? "text-accent" : "hover:text-foreground"
       )}
     >
@@ -282,7 +290,19 @@ export function BottomNav({ initialMoreOpen = false, initialCustomizeOpen = fals
       .filter((item): item is MobileNavItem => Boolean(item))
       .filter((item) => isItemVisible(item, activeModules))
   }, [activeModules, moduleOrder])
-  const featureCandidates = orderedItems.filter(isFeatureCandidate)
+  const groupedOrderedItems = React.useMemo(() => {
+    const itemById = new Map(orderedItems.map((item) => [item.id, item]))
+
+    return MOBILE_MODULE_GROUPS
+      .map((group) => ({
+        ...group,
+        items: group.ids
+          .map((id) => itemById.get(id))
+          .filter((item): item is MobileNavItem => Boolean(item)),
+      }))
+      .filter((group) => group.items.length > 0)
+  }, [orderedItems])
+  const featureCandidates = React.useMemo(() => orderedItems.filter(isFeatureCandidate), [orderedItems])
   const [leftFeaturedItem, rightFeaturedItem] = resolveFeaturedItems(featuredIds, featureCandidates)
   const isMoreActive = ![MOBILE_HOME_ITEM, leftFeaturedItem, rightFeaturedItem].some((item) =>
     isItemActive(pathname, item.href)
@@ -375,7 +395,7 @@ export function BottomNav({ initialMoreOpen = false, initialCustomizeOpen = fals
           data-active={isMoreActive ? "true" : undefined}
           onClick={() => setIsMoreOpen((open) => !open)}
           className={cn(
-            "flex h-full min-w-0 cursor-pointer flex-col items-center justify-center gap-2 px-1 pt-1 pb-2 text-muted-foreground transition-colors duration-150 ease-out hover:text-foreground motion-reduce:transition-none",
+            "flex h-full min-w-0 cursor-pointer flex-col items-center justify-center gap-1.5 px-1 pt-1 pb-2 text-muted-foreground transition-colors duration-150 ease-out hover:text-foreground motion-reduce:transition-none",
             isMoreActive && "text-accent"
           )}
         >
@@ -514,30 +534,39 @@ export function BottomNav({ initialMoreOpen = false, initialCustomizeOpen = fals
                     </section>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2 overflow-x-hidden">
-                    {orderedItems.map((item) => {
-                      const isActive = isItemActive(pathname, item.href)
+                  <div className="space-y-4 overflow-x-hidden">
+                    {groupedOrderedItems.map((group) => (
+                      <section key={group.name} className="space-y-2 overflow-x-hidden">
+                        <h3 className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                          {group.name}
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2 overflow-x-hidden">
+                          {group.items.map((item) => {
+                            const isActive = isItemActive(pathname, item.href)
 
-                      return (
-                        <IntentPrefetchLink
-                          key={item.href}
-                          href={item.href}
-                          prefetch={false}
-                          aria-label={`Ir a ${item.name}`}
-                          aria-current={isActive ? "page" : undefined}
-                          onClick={closeMore}
-                          className={cn(
-                            "flex min-h-11 min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm font-medium transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100",
-                            isActive
-                              ? "border-accent/25 bg-accent/10 text-accent"
-                              : "border-border/70 bg-card text-foreground hover:bg-muted/50"
-                          )}
-                        >
-                          <item.icon className="h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden="true" />
-                          <span className="min-w-0 truncate">{item.name}</span>
-                        </IntentPrefetchLink>
-                      )
-                    })}
+                            return (
+                              <IntentPrefetchLink
+                                key={item.href}
+                                href={item.href}
+                                prefetch={false}
+                                aria-label={`Ir a ${item.name}`}
+                                aria-current={isActive ? "page" : undefined}
+                                onClick={closeMore}
+                                className={cn(
+                                  "flex min-h-11 min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm font-medium transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100",
+                                  isActive
+                                    ? "border-accent/25 bg-accent/10 text-accent"
+                                    : "border-border/70 bg-card text-foreground hover:bg-muted/50"
+                                )}
+                              >
+                                <item.icon className="h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden="true" />
+                                <span className="min-w-0 truncate">{item.name}</span>
+                              </IntentPrefetchLink>
+                            )
+                          })}
+                        </div>
+                      </section>
+                    ))}
                   </div>
                 )}
               </div>

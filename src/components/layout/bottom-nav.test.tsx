@@ -65,15 +65,33 @@ describe('BottomNav', () => {
     expect(html).toContain('href="/configuracion"')
   })
 
-  it('keeps the active tab dimensional without using flat filled icons', () => {
+  it('keeps the module drawer grouped while customization stays separate', () => {
+    const html = renderToStaticMarkup(<BottomNav initialMoreOpen />)
+    const drawerHtml = html.slice(html.indexOf('id="mobile-module-nav"'))
+
+    expect(drawerHtml).toContain('General')
+    expect(drawerHtml).toContain('Productividad')
+    expect(drawerHtml).toContain('Educación')
+    expect(drawerHtml).toContain('Vida')
+    expect(drawerHtml).toContain('Sistema')
+    expect(drawerHtml.indexOf('General')).toBeLessThan(drawerHtml.indexOf('Calendario'))
+    expect(drawerHtml.indexOf('Productividad')).toBeLessThan(drawerHtml.indexOf('Tareas'))
+    expect(drawerHtml.indexOf('Educación')).toBeLessThan(drawerHtml.indexOf('Estudio'))
+    expect(drawerHtml.indexOf('Vida')).toBeLessThan(drawerHtml.indexOf('Finanzas'))
+  })
+
+  it('keeps the active tab compact while separating the indicator from the label', () => {
     const html = renderToStaticMarkup(<BottomNav />)
 
     expect(html).toContain('data-active="true"')
     expect(html).toContain('bg-accent/10')
     expect(html).toContain('ring-1')
-    expect(html).toContain('h-9 w-11')
-    expect(html).toContain('-bottom-2')
-    expect(html).toContain('gap-2')
+    expect(html).toContain('h-8 w-10')
+    expect(html).toContain('-bottom-1')
+    expect(html).toContain('justify-center gap-1.5 px-1 pt-1 pb-2')
+    expect(html).not.toContain('h-9 w-11')
+    expect(html).not.toContain('-bottom-2')
+    expect(html).not.toContain('justify-center gap-2 px-1 pt-1 pb-2')
     expect(html).not.toContain('gap-0.5')
     expect(html).not.toContain('fill-current opacity-20')
   })
