@@ -284,8 +284,12 @@ describe('Acrue design system static rules', () => {
 
     expect(settings).not.toContain('Módulo {mod}')
     expect(settings).not.toContain('className="text-base capitalize cursor-pointer"')
-    expect(settings).toContain('const moduleLabels')
-    expect(settings).toContain('Hábitos')
+    expect(settings).toContain('MODULE_LABELS')
+    const modulePreferences = readFileSync(join(process.cwd(), 'src/lib/module-preferences.ts'), 'utf8')
+
+    expect(modulePreferences).toContain('habitos: "Hábitos"')
+    expect(modulePreferences).toContain('cerebro: "Cerebro"')
+    expect(modulePreferences).toContain('wishlist: "Lista de deseos"')
   })
 
   it('makes the full configurable module row toggleable', () => {
@@ -331,11 +335,27 @@ describe('Acrue design system static rules', () => {
     }
   })
 
-  it('does not disable browser zoom in the root viewport metadata', () => {
+  it('locks mobile PWA zoom for the single-user installed app surface', () => {
     const layout = readFileSync(join(process.cwd(), 'src/app/layout.tsx'), 'utf8')
 
-    expect(layout).not.toContain('maximumScale')
-    expect(layout).not.toContain('userScalable: false')
+    expect(layout).toContain('maximumScale: 1')
+    expect(layout).toContain('userScalable: false')
+  })
+
+  it('guards the mobile PWA against accidental selection and browser context menus', () => {
+    const layout = readFileSync(join(process.cwd(), 'src/app/layout.tsx'), 'utf8')
+    const globals = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
+    const guard = readFileSync(join(process.cwd(), 'src/components/providers/mobile-app-gesture-guard.tsx'), 'utf8')
+
+    expect(layout).toContain('MobileAppGestureGuard')
+    expect(globals).toContain('@media (pointer: coarse)')
+    expect(globals).toContain('user-select: none')
+    expect(globals).toContain('-webkit-user-select: none')
+    expect(globals).toContain('-webkit-touch-callout: none')
+    expect(globals).toContain('[data-text-selectable="true"]')
+    expect(guard).toContain('contextmenu')
+    expect(guard).toContain('gesturestart')
+    expect(guard).toContain('event.preventDefault()')
   })
 
   it('does not allow explicit horizontal scrolling in visible UI source', () => {
@@ -363,6 +383,26 @@ describe('Acrue design system static rules', () => {
     })
 
     expect(violations).toEqual([])
+  })
+
+  it('keeps accent customization constrained to the approved settings palette', () => {
+    const settings = readFileSync(join(process.cwd(), SETTINGS_PAGE), 'utf8')
+    const palette = readFileSync(join(process.cwd(), 'src/lib/accent-colors.ts'), 'utf8')
+    const provider = readFileSync(join(process.cwd(), 'src/components/providers/accent-color-provider.tsx'), 'utf8')
+    const layout = readFileSync(join(process.cwd(), 'src/app/layout.tsx'), 'utf8')
+
+    expect(settings).toContain('Color de acento')
+    expect(settings).toContain('ACCENT_COLOR_OPTIONS')
+    expect(settings).toContain('ACCENT_COLOR_STORAGE_KEY')
+    expect(palette).toContain('ACCENT_COLOR_OPTIONS')
+    expect(palette).toContain('label: "Azul"')
+    expect(palette).toContain('label: "Verde"')
+    expect(palette).toContain('label: "Rojo"')
+    expect(palette).toContain('label: "Amarillo"')
+    expect(palette).toContain('label: "Naranja"')
+    expect(provider).toContain('setProperty("--accent"')
+    expect(provider).toContain('setProperty("--ring"')
+    expect(layout).toContain('AccentColorProvider')
   })
 
   it('does not wrap hex color CSS variables in hsl()', () => {

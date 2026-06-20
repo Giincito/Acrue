@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TRPCProvider } from "@/components/providers/trpc-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { AccentColorProvider } from "@/components/providers/accent-color-provider";
+import { MobileAppGestureGuard } from "@/components/providers/mobile-app-gesture-guard";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -32,7 +34,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: "#0C0C0B",
   width: "device-width",
-  initialScale: 1
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false
 };
 
 export default function RootLayout({
@@ -47,9 +51,12 @@ export default function RootLayout({
       >
         <TRPCProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <ServiceWorkerRegistration />
-            {children}
-            <Toaster />
+            <AccentColorProvider>
+              <MobileAppGestureGuard />
+              <ServiceWorkerRegistration />
+              {children}
+              <Toaster />
+            </AccentColorProvider>
           </ThemeProvider>
         </TRPCProvider>
       </body>

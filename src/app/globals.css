@@ -180,6 +180,30 @@
     min-width: 44px;
     touch-action: manipulation;
   }
+
+  @media (pointer: coarse) {
+    html,
+    body {
+      overscroll-behavior-x: none;
+    }
+
+    body {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    input,
+    textarea,
+    select,
+    [contenteditable="true"],
+    [data-text-selectable="true"] {
+      -webkit-touch-callout: default;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+  }
 }
 
 @layer utilities {

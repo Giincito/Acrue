@@ -71,7 +71,7 @@ describe('Acrue project hygiene static rules', () => {
     expect(violations).toEqual([])
   })
 
-  it('keeps browser Sentry disabled on local app origins', () => {
+  it('keeps browser Sentry disabled unless explicitly enabled for production diagnostics', () => {
     const browserSentryFiles = [
       'src/instrumentation-client.ts',
     ]
@@ -79,13 +79,18 @@ describe('Acrue project hygiene static rules', () => {
     const violations = browserSentryFiles.flatMap((file) => {
       const content = readFileSync(join(process.cwd(), file), 'utf8')
       const issues = [
+        content.includes('NEXT_PUBLIC_BROWSER_SENTRY_ENABLED') ? null : 'missing browser Sentry opt-in flag',
+        content.includes('isBrowserSentryEnabled') ? null : 'missing enabled predicate',
         content.includes('isLocalSentryHost') ? null : 'missing local host guard',
         /['"]localhost['"]/.test(content) ? null : 'missing localhost',
         /['"]127\.0\.0\.1['"]/.test(content) ? null : 'missing 127.0.0.1',
         /['"]::1['"]/.test(content) ? null : 'missing ::1',
-        content.includes('enabled: Boolean(browserSentryDsn) && !isLocalSentryHost')
+        content.includes('process.env.NEXT_PUBLIC_BROWSER_SENTRY_ENABLED === "true"')
           ? null
-          : 'missing enabled gate',
+          : 'missing explicit opt-in gate',
+        content.includes('enabled: Boolean(browserSentryDsn) && !isLocalSentryHost')
+          ? 'browser Sentry auto-enables from DSN only'
+          : null,
       ].filter(Boolean)
 
       return issues.length > 0 ? [`${file}: ${issues.join(', ')}`] : []
@@ -94,17 +99,32 @@ describe('Acrue project hygiene static rules', () => {
     expect(violations).toEqual([])
   })
 
-  it('initializes browser Sentry from a single client entrypoint', () => {
-    const browserSentryFiles = [
-      'sentry.client.config.ts',
-      'src/instrumentation-client.ts',
+  it('keeps primary app navigation from eager-prefetching every module route', () => {
+    const navigationFiles = [
+      'src/components/layout/sidebar.tsx',
+      'src/components/layout/bottom-nav.tsx',
     ]
-    const initializers = browserSentryFiles.filter((file) => {
+    const violations = navigationFiles.flatMap((file) => {
       const content = readFileSync(join(process.cwd(), file), 'utf8')
-      return /Sentry\.init\(/.test(content)
+      const issues = [
+        content.includes('IntentPrefetchLink') ? null : 'missing intent prefetch link',
+        content.includes('prefetch={false}') ? null : 'missing eager prefetch opt-out',
+        content.includes('prefetch={true}') ? 'contains eager prefetch' : null,
+      ].filter(Boolean)
+
+      return issues.length > 0 ? [`${file}: ${issues.join(', ')}`] : []
     })
 
-    expect(initializers).toEqual(['src/instrumentation-client.ts'])
+    expect(violations).toEqual([])
+  })
+
+  it('loads browser Sentry from a single opt-in client entrypoint', () => {
+    const clientConfig = readFileSync(join(process.cwd(), 'sentry.client.config.ts'), 'utf8')
+    const instrumentationClient = readFileSync(join(process.cwd(), 'src/instrumentation-client.ts'), 'utf8')
+
+    expect(clientConfig).not.toContain('Sentry.init(')
+    expect(instrumentationClient).toContain('import("@sentry/nextjs")')
+    expect(instrumentationClient).toContain('loadBrowserSentry')
   })
 
   it('keeps local env files out of Vercel CLI uploads', () => {

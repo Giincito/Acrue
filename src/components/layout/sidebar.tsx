@@ -1,14 +1,19 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IntentPrefetchLink } from "@/components/layout/intent-prefetch-link"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { BrandMark } from "@/components/ui/brand-mark"
 import { trpc } from "@/lib/trpc"
+import {
+  MODULE_VISIBILITY_EVENT,
+  MODULE_VISIBILITY_STORAGE_KEY,
+  normalizeModuleVisibility,
+} from "@/lib/module-preferences"
 import {
   CheckCircle2,
   Calendar,
@@ -221,24 +226,21 @@ export function Sidebar() {
   const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({})
   const searchParams = useSearchParams()
 
-  const [activeModules, setActiveModules] = React.useState<Record<string, boolean>>({
-    tareas: true,
-    calendario: true,
-    estudio: true,
-    finanzas: true,
-    // Add default true for others or omit them if they aren't toggleable yet
-  })
+  const [activeModules, setActiveModules] = React.useState<Record<string, boolean>>(normalizeModuleVisibility(null))
 
   React.useEffect(() => {
     const loadModules = () => {
-      const saved = localStorage.getItem('acrue_modules')
-      if (saved) {
-        setActiveModules(JSON.parse(saved))
+      try {
+        const saved = localStorage.getItem(MODULE_VISIBILITY_STORAGE_KEY)
+        setActiveModules(normalizeModuleVisibility(saved ? JSON.parse(saved) : null))
+      } catch {
+        localStorage.removeItem(MODULE_VISIBILITY_STORAGE_KEY)
+        setActiveModules(normalizeModuleVisibility(null))
       }
     }
     loadModules()
-    window.addEventListener('acrue_modules_changed', loadModules)
-    return () => window.removeEventListener('acrue_modules_changed', loadModules)
+    window.addEventListener(MODULE_VISIBILITY_EVENT, loadModules)
+    return () => window.removeEventListener(MODULE_VISIBILITY_EVENT, loadModules)
   }, [])
 
   // Auto-collapse logic when changing modules
@@ -294,8 +296,9 @@ export function Sidebar() {
                       : "text-muted-foreground hover:text-primary hover:bg-muted/50"
                   )}
                 >
-                  <Link
+                  <IntentPrefetchLink
                     href={item.href}
+                    prefetch={false}
                     aria-label={`Ir a ${item.name}`}
                     className="absolute inset-0 rounded-md cursor-pointer focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   />
@@ -375,10 +378,10 @@ export function Sidebar() {
                                             const isActiveChild = isHrefActive(child.href, pathname, searchParams)
 
                                             return (
-                                              <Link
+                                              <IntentPrefetchLink
                                                 key={child.name}
                                                 href={child.href}
-                                                prefetch={true}
+                                                prefetch={false}
                                                 className={cn(
                                                   "flex min-h-8 items-center gap-2 rounded-md pl-11 pr-2 py-1 text-xs transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none cursor-pointer",
                                                   isActiveChild
@@ -388,7 +391,7 @@ export function Sidebar() {
                                               >
                                                 <child.icon className="h-3.5 w-3.5" aria-hidden="true" />
                                                 {child.name}
-                                              </Link>
+                                              </IntentPrefetchLink>
                                             )
                                           })}
                                         </div>
@@ -401,10 +404,10 @@ export function Sidebar() {
 
                             const isActiveSub = isHrefActive(sub.href, pathname, searchParams)
                             return (
-                              <Link
+                              <IntentPrefetchLink
                                 key={sub.name}
                                 href={sub.href}
-                                prefetch={true}
+                                prefetch={false}
                                 className={cn(
                                   "flex min-h-9 items-center gap-2 rounded-md pl-7 pr-2 py-1 text-xs transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none cursor-pointer",
                                   isActiveSub
@@ -414,7 +417,7 @@ export function Sidebar() {
                               >
                                 <sub.icon className="h-3.5 w-3.5" />
                                 {sub.name}
-                              </Link>
+                              </IntentPrefetchLink>
                             )
                           })}
                         </div>
@@ -429,8 +432,9 @@ export function Sidebar() {
       </div>
       <div className="border-t border-border/40 p-3 flex flex-col gap-3">
         {xpSummary && (
-          <Link
+          <IntentPrefetchLink
             href="/habitos"
+            prefetch={false}
             className="flex cursor-pointer flex-col gap-2 rounded-md border border-border/60 bg-card px-3 py-2 transition-colors hover:bg-muted/50"
           >
             <div className="flex items-center justify-between gap-2">
@@ -447,10 +451,11 @@ export function Sidebar() {
               <span>{xpSummary.totalXP} XP</span>
               <span>{xpSummary.title}</span>
             </div>
-          </Link>
+          </IntentPrefetchLink>
         )}
-        <Link
+        <IntentPrefetchLink
           href="/configuracion"
+          prefetch={false}
           className={cn(
             "flex min-h-11 items-center gap-2.5 rounded-md px-2.5 py-1.5 text-muted-foreground transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none hover:text-primary text-[13px] font-medium cursor-pointer",
             pathname === "/configuracion" ? "bg-accent text-accent-foreground" : ""
@@ -458,7 +463,7 @@ export function Sidebar() {
         >
           <Settings className="h-4 w-4" />
           Ajustes
-        </Link>
+        </IntentPrefetchLink>
         <div className="flex items-center justify-between px-3">
           <span className="text-sm text-muted-foreground font-medium">Tema</span>
           <ThemeToggle />

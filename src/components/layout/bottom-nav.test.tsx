@@ -5,6 +5,7 @@ import { BottomNav } from './bottom-nav'
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/tareas',
+  useRouter: () => ({ prefetch: vi.fn() }),
 }))
 
 vi.mock('next/link', () => ({
@@ -34,6 +35,19 @@ describe('BottomNav', () => {
     expect(html).toContain('Más')
   })
 
+  it('uses Tareas and Finanzas as the default configurable featured slots', () => {
+    const html = renderToStaticMarkup(<BottomNav />)
+    const tasksIndex = html.indexOf('data-featured-slot="left"')
+    const commandIndex = html.indexOf('data-command-trigger="true"')
+    const financesIndex = html.indexOf('data-featured-slot="right"')
+
+    expect(html).toContain('aria-label="Ir a Tareas"')
+    expect(html).toContain('aria-label="Ir a Finanzas"')
+    expect(tasksIndex).toBeGreaterThan(-1)
+    expect(commandIndex).toBeGreaterThan(tasksIndex)
+    expect(financesIndex).toBeGreaterThan(commandIndex)
+  })
+
   it('opens a mobile module drawer with every platform module reachable', () => {
     const html = renderToStaticMarkup(<BottomNav initialMoreOpen />)
 
@@ -57,7 +71,23 @@ describe('BottomNav', () => {
     expect(html).toContain('data-active="true"')
     expect(html).toContain('bg-accent/10')
     expect(html).toContain('ring-1')
+    expect(html).toContain('h-9 w-11')
+    expect(html).toContain('-bottom-2')
+    expect(html).toContain('gap-2')
+    expect(html).not.toContain('gap-0.5')
     expect(html).not.toContain('fill-current opacity-20')
+  })
+
+  it('opens the module customization panel from the drawer overflow action', () => {
+    const html = renderToStaticMarkup(<BottomNav initialMoreOpen initialCustomizeOpen />)
+
+    expect(html).toContain('Personalizar')
+    expect(html).toContain('Destacados')
+    expect(html).toContain('name="featured-left"')
+    expect(html).toContain('name="featured-right"')
+    expect(html).toContain('Orden')
+    expect(html).toContain('aria-label="Subir Tareas"')
+    expect(html).toContain('aria-label="Restablecer navegación móvil"')
   })
 
   it('prevents horizontal overflow in the mobile navigation surface', () => {

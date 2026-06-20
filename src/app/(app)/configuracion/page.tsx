@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useTheme } from "@/components/providers/theme-provider"
-import { Calendar as CalendarIcon, Music2, RotateCw, Send } from "lucide-react"
+import { Calendar as CalendarIcon, Music2, Palette, RotateCw, Send } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ModuleShell } from "@/components/layout/module-shell"
@@ -10,6 +10,23 @@ import { DegradedNotice } from "@/components/shared/degraded-notice"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { applyAccentColor } from "@/components/providers/accent-color-provider"
+import {
+  ACCENT_COLOR_EVENT,
+  ACCENT_COLOR_OPTIONS,
+  ACCENT_COLOR_STORAGE_KEY,
+  DEFAULT_ACCENT_COLOR,
+  isAccentColorValue,
+  type AccentColorValue,
+} from "@/lib/accent-colors"
+import {
+  MODULE_LABELS,
+  MODULE_VISIBILITY_DEFAULTS,
+  MODULE_VISIBILITY_EVENT,
+  MODULE_VISIBILITY_STORAGE_KEY,
+  normalizeModuleVisibility,
+  type ModuleKey,
+} from "@/lib/module-preferences"
 import { createClient } from "@/utils/supabase/client"
 
 type IntegrationStatusResponse = {
@@ -25,45 +42,33 @@ type UserSettings = {
   }
 }
 
-const defaultActiveModules = {
-  tareas: true,
-  calendario: true,
-  proyectos: true,
-  estudio: true,
-  finanzas: true,
-  despensa: true,
-  recetas: true,
-  habitos: true,
-}
-
-type ModuleKey = keyof typeof defaultActiveModules
-
-const moduleLabels: Record<ModuleKey, string> = {
-  tareas: "Tareas",
-  calendario: "Calendario",
-  proyectos: "Proyectos",
-  estudio: "Estudio",
-  finanzas: "Finanzas",
-  despensa: "Despensa",
-  recetas: "Recetas",
-  habitos: "Hábitos",
-}
-
 function readStoredModules() {
   try {
-    const saved = localStorage.getItem("acrue_modules")
-    if (!saved) return null
+    const saved = localStorage.getItem(MODULE_VISIBILITY_STORAGE_KEY)
+    if (!saved) return normalizeModuleVisibility(null)
 
-    return JSON.parse(saved) as Partial<Record<ModuleKey, boolean>>
+    return normalizeModuleVisibility(JSON.parse(saved) as Partial<Record<ModuleKey, boolean>>)
   } catch {
-    localStorage.removeItem("acrue_modules")
-    return null
+    localStorage.removeItem(MODULE_VISIBILITY_STORAGE_KEY)
+    return normalizeModuleVisibility(null)
+  }
+}
+
+function readStoredAccentColor(): AccentColorValue {
+  try {
+    const saved = localStorage.getItem(ACCENT_COLOR_STORAGE_KEY)
+    return isAccentColorValue(saved) ? saved : DEFAULT_ACCENT_COLOR.value
+  } catch {
+    return DEFAULT_ACCENT_COLOR.value
   }
 }
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const [activeModules, setActiveModules] = React.useState<Record<ModuleKey, boolean>>({ ...defaultActiveModules })
+  const [activeModules, setActiveModules] = React.useState<Record<ModuleKey, boolean>>(
+    normalizeModuleVisibility(null)
+  )
+  const [accentColor, setAccentColor] = React.useState<AccentColorValue>(DEFAULT_ACCENT_COLOR.value)
   const [userId, setUserId] = React.useState<string | null>(null)
   const [isGoogleLinked, setIsGoogleLinked] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
@@ -111,16 +116,25 @@ export default function SettingsPage() {
     void fetchUserAndIntegrationSettings()
 
     const savedModules = readStoredModules()
-    if (savedModules) {
-      setActiveModules({ ...defaultActiveModules, ...savedModules })
-    }
+    setActiveModules(savedModules)
+
+    const savedAccentColor = readStoredAccentColor()
+    setAccentColor(savedAccentColor)
+    applyAccentColor(savedAccentColor)
   }, [fetchUserAndIntegrationSettings])
 
   const handleToggle = (module: ModuleKey) => {
     const newModules = { ...activeModules, [module]: !activeModules[module] }
     setActiveModules(newModules)
-    localStorage.setItem("acrue_modules", JSON.stringify(newModules))
-    window.dispatchEvent(new Event("acrue_modules_changed"))
+    localStorage.setItem(MODULE_VISIBILITY_STORAGE_KEY, JSON.stringify(newModules))
+    window.dispatchEvent(new Event(MODULE_VISIBILITY_EVENT))
+  }
+
+  const handleAccentColorChange = (value: AccentColorValue) => {
+    setAccentColor(value)
+    localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, value)
+    applyAccentColor(value)
+    window.dispatchEvent(new Event(ACCENT_COLOR_EVENT))
   }
 
   const handleManualSync = async () => {
@@ -207,14 +221,14 @@ export default function SettingsPage() {
             Visibilidad de módulos
           </h2>
           <div className="bg-card border rounded-xl overflow-hidden divide-y">
-            {(Object.keys(activeModules) as ModuleKey[]).map((mod) => (
+            {(Object.keys(MODULE_VISIBILITY_DEFAULTS) as ModuleKey[]).map((mod) => (
               <label
                 key={mod}
                 htmlFor={`toggle-${mod}`}
                 className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/40"
               >
                 <span className="text-base">
-                  {moduleLabels[mod]}
+                  {MODULE_LABELS[mod]}
                 </span>
                 <input
                   id={`toggle-${mod}`}
@@ -249,6 +263,45 @@ export default function SettingsPage() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
             Apariencia
           </h2>
+
+          <div className="bg-card border rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <Label className="flex items-center gap-2 text-base font-medium">
+                <Palette className="w-4 h-4 text-muted-foreground" />
+                Color de acento
+              </Label>
+              <span className="text-sm text-muted-foreground">
+                {ACCENT_COLOR_OPTIONS.find((option) => option.value === accentColor)?.label}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {ACCENT_COLOR_OPTIONS.map((option) => {
+                const isSelected = accentColor === option.value
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-label={`Usar acento ${option.label}`}
+                    aria-pressed={isSelected}
+                    onClick={() => handleAccentColorChange(option.value)}
+                    className={`flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 ${
+                      isSelected
+                        ? "border-accent bg-accent/10 text-foreground shadow-sm"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="h-5 w-5 shrink-0 rounded-full border border-border"
+                      style={{ backgroundColor: option.value }}
+                    />
+                    <span className="min-w-0 truncate">{option.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           <div className="bg-card border rounded-xl p-4">
             <div className="flex items-center justify-between">

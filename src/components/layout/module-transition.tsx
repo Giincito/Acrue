@@ -108,7 +108,7 @@ export function RouteTransition({
   }
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="sync" initial={false}>
       <motion.div
         key={pathname}
         data-route-transition={mode}
@@ -139,7 +139,7 @@ export function TabTransition({
   }
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="sync" initial={false}>
       <motion.div
         key={value}
         data-tab-transition="fade"

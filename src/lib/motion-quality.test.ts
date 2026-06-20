@@ -73,6 +73,8 @@ describe('motion quality', () => {
     expect(transitions).toContain('duration: 0.2')
     expect(transitions).toContain('duration: 0.15')
     expect(transitions).toContain('duration: 0.1')
+    expect(transitions).toContain('mode="sync"')
+    expect(transitions).not.toContain('mode="wait"')
 
     expect(layout).toContain('RouteTransition')
     expect(template).not.toContain('motion.div')

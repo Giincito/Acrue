@@ -18,7 +18,7 @@ export default function AppLayout({
         <Suspense fallback={null}>
           <Sidebar />
         </Suspense>
-        <main className="relative min-w-0 flex-1 overflow-x-hidden pb-16 md:pb-0">
+        <main className="relative min-w-0 flex-1 overflow-x-hidden pb-[72px] md:pb-0">
           <RouteTransition>{children}</RouteTransition>
         </main>
       </div>
