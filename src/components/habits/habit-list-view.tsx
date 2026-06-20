@@ -590,11 +590,11 @@ function TimelinePanel({
           </div>
         </div>
 
-        <div className="overflow-x-auto pb-2">
+        <div className="overflow-x-hidden pb-2">
           <div
             className={cn(
               "grid gap-1",
-              view === "year" ? "grid-flow-col grid-rows-7 auto-cols-[12px]" : "grid-cols-7"
+              view === "year" ? "grid-cols-[repeat(auto-fill,minmax(12px,1fr))]" : "grid-cols-7"
             )}
           >
             {days.map((day) => (

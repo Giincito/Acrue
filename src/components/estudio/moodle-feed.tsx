@@ -215,12 +215,12 @@ export function MoodleFeed() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-2 overflow-x-hidden pb-1">
             <Button
               variant={selectedCourse === null ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCourse(null)}
-              className="rounded-full shrink-0 h-8 text-xs font-medium cursor-pointer"
+              className="rounded-full h-8 text-xs font-medium cursor-pointer"
             >
               Todas
             </Button>
@@ -230,13 +230,13 @@ export function MoodleFeed() {
                 variant={selectedCourse === course ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCourse(course)}
-                className={`rounded-full shrink-0 h-8 text-xs font-medium cursor-pointer ${
+                className={`rounded-full h-8 max-w-full text-xs font-medium cursor-pointer ${
                   selectedCourse === course
                     ? "bg-stone-800 text-white hover:bg-stone-900 border-none dark:bg-stone-200 dark:text-black dark:hover:bg-stone-300"
                     : "bg-card/50"
                 }`}
               >
-                {course}
+                <span className="truncate">{course}</span>
               </Button>
             ))}
           </div>

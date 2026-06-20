@@ -82,15 +82,15 @@ function CalendarSection() {
         </div>
       )}
 
-      <div className="p-2 overflow-x-auto">
+      <div className="overflow-x-hidden p-2">
         {!events || events.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground text-xs italic">
             No hay fechas próximas registradas en el calendario de Moodle.
           </div>
         ) : (
-          <div className="flex gap-2 pb-2 min-w-max">
+          <div className="grid gap-2 pb-2 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((ev) => (
-              <div key={ev.id} className="border rounded-lg bg-background p-3 w-[220px] shrink-0 space-y-1">
+              <div key={ev.id} className="min-w-0 space-y-1 rounded-lg border bg-background p-3">
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block truncate">
                   {ev.course_name}
                 </span>

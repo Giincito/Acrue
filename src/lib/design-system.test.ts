@@ -338,6 +338,16 @@ describe('Acrue design system static rules', () => {
     expect(layout).not.toContain('userScalable: false')
   })
 
+  it('does not allow explicit horizontal scrolling in visible UI source', () => {
+    const horizontalScrollPattern = /\boverflow-x-(?:auto|scroll)\b|\bmin-w-max\b/
+    const violations = UI_FILES.flatMap((file) => {
+      const content = readFileSync(file, 'utf8')
+      return horizontalScrollPattern.test(content) ? [relative(process.cwd(), file)] : []
+    })
+
+    expect(violations).toEqual([])
+  })
+
   it('keeps the Acrue accent token fixed instead of user-configurable', () => {
     const forbiddenAccentOverrides = [
       'acrue_accent',

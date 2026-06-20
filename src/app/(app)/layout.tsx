@@ -13,12 +13,12 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <div className="flex flex-1">
+    <div className="flex min-h-screen w-full overflow-x-hidden flex-col bg-background">
+      <div className="flex min-w-0 flex-1 overflow-x-hidden">
         <Suspense fallback={null}>
           <Sidebar />
         </Suspense>
-        <main className="flex-1 pb-16 md:pb-0 relative">
+        <main className="relative min-w-0 flex-1 overflow-x-hidden pb-16 md:pb-0">
           <RouteTransition>{children}</RouteTransition>
         </main>
       </div>

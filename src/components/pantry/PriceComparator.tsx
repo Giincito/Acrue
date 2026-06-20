@@ -185,24 +185,15 @@ export function PriceComparator() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : storeRows.length > 0 && itemsWithPantryId.length > 0 ? (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/30">
-                <th className="text-left p-3 font-medium">Producto</th>
-                {storeRows.map((store) => (
-                  <th key={store.id} className="text-center p-3 font-medium min-w-[100px]">
-                    {store.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {itemsWithPantryId.map((item) => {
-                const cheapestStoreId = getCheapestStoreForItem(item.pantry_item_id)
-                return (
-                  <tr key={item.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="p-3 font-medium">{item.name}</td>
+        <div className="overflow-x-hidden rounded-lg border">
+          <div className="divide-y">
+            {itemsWithPantryId.map((item) => {
+              const cheapestStoreId = getCheapestStoreForItem(item.pantry_item_id)
+
+              return (
+                <section key={item.id} className="space-y-3 p-3">
+                  <h4 className="text-sm font-medium text-foreground">{item.name}</h4>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {storeRows.map((store) => {
                       const price = getPrice(item.pantry_item_id, store.id)
                       const isCheapest = store.id === cheapestStoreId && price !== null
@@ -211,53 +202,66 @@ export function PriceComparator() {
                         editingPrice?.pantryItemId === item.pantry_item_id
 
                       return (
-                        <td key={store.id} className="text-center p-3">
+                        <div
+                          key={store.id}
+                          className={`min-w-0 rounded-lg border p-2 ${
+                            isCheapest ? "border-primary/25 bg-primary/5" : "border-border/70 bg-card"
+                          }`}
+                        >
+                          <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                            <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">
+                              {store.name}
+                            </span>
+                            {isCheapest && (
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                                Mejor
+                              </span>
+                            )}
+                          </div>
                           {isEditingThis ? (
-                            <div className="flex items-center gap-1 justify-center">
-                              <input
-                                type="number"
-                                min={0}
-                                step="any"
-                                value={priceValue}
-                                onChange={(event) => setPriceValue(event.target.value)}
-                                className="w-20 h-7 rounded border border-input bg-transparent px-2 text-sm text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                autoFocus
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") handlePriceSave()
-                                  if (event.key === "Escape") setEditingPrice(null)
-                                }}
-                              />
-                            </div>
+                            <input
+                              type="number"
+                              min={0}
+                              step="any"
+                              value={priceValue}
+                              onChange={(event) => setPriceValue(event.target.value)}
+                              className="min-h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                              autoFocus
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") handlePriceSave()
+                                if (event.key === "Escape") setEditingPrice(null)
+                              }}
+                            />
                           ) : (
                             <button
                               type="button"
                               onClick={() => handlePriceClick(store.id, item.pantry_item_id, price)}
-                              className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                              className={`flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-lg px-3 text-sm transition-colors ${
                                 isCheapest
                                   ? "bg-primary/10 text-primary font-medium"
                                   : price !== null
-                                    ? "hover:bg-muted/50 text-foreground"
+                                    ? "text-foreground hover:bg-muted/50"
                                     : "text-muted-foreground hover:bg-muted/50"
                               }`}
                             >
                               {price !== null ? (
                                 <>
-                                  <DollarSign className="h-3 w-3" />
+                                  <DollarSign className="h-3.5 w-3.5" />
                                   {price.toLocaleString("es-AR")}
                                 </>
                               ) : (
-                                <span className="text-xs">-</span>
+                                <span className="text-xs">Sin precio</span>
                               )}
                             </button>
                           )}
-                        </td>
+                        </div>
                       )
                     })}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                  </div>
+                </section>
+              )
+            })}
+          </div>
         </div>
       ) : (
         <motion.div
